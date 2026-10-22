@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BASE DE DONNÉES — Portail Sécurisé</title>
+  <style>
+
+    :root {
+      --primary: #0f172a;
+      --primary-hover: #1e293b;
+      --bg-main: #f8fafc;
+      --bg-card: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --radius: 12px;
+      --transition: all 0.2s ease;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      padding: 20px;
+      line-height: 1.5;
+    }
+
+    .container { max-width: 1440px; margin: 0 auto; }
+    
+    /* Header centré */
+    header {
+      background: var(--bg-card);
+      padding: 18px;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border-color);
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    /* Onglets */
+    .tabs-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 9px 18px;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+      transition: var(--transition);
+    }
+    .tab-btn:hover { background: #f1f5f9; color: var(--primary); }
+    .tab-btn.active-carton {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    }
+    .tab-btn.active-sachet {
+      background: #eab308;
+      color: #020617;
+      border-color: #ca8a04;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(234, 179, 8, 0.2);
+    }
+    .tab-btn.active-pet {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    }
+    
+    .top-actions-bar {
+      background: var(--bg-card);
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .search-box { display: flex; align-items: center; gap: 8px; }
+    .search-input {
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      outline: none;
+      background: var(--bg-card);
+      width: 240px;
+      transition: var(--transition);
+    }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1); }
+    .count-badge {
+      font-family: monospace;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: #f1f5f9;
+      padding: 6px 10px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .act-btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .act-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+    .btn-ajouter { background: #10b981; }
+    .btn-modifier { background: #f59e0b; color: #fff; }
+    .btn-modifier.active { background: #d97706; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25); }
+    .btn-supprimer { background: #ef4444; }
+    .btn-supprimer.active { background: #dc2626; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25); }
+    .btn-imprimer { background: #334155; }
+    .btn-partager { background: #3b82f6; }
+
+    /* الجدول */
+    .table-container {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 0.82rem; }
+    
+    th {
+      font-weight: 700;
+      font-size: 0.73rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 12px 14px;
+      white-space: nowrap;
+    }
+
+    /* رأس جدول الكرطون باللون الأزرق الملوّن بالكامل */
+    .th-blue {
+      background-color: #dbeafe !important;
+      color: #1e3a8a !important;
+      border-bottom: 2px solid #60a5fa !important;
+    }
+
+    /* رأس جدول الصاشيات باللون الأصفر الملوّن بالكامل */
+    .th-yellow {
+      background-color: #fef08a !important;
+      color: #713f12 !important;
+      border-bottom: 2px solid #facc15 !important;
+    }
+
+    /* رأس جدول PET العادي */
+    .th-default {
+      background-color: #f8fafc;
+      color: #475569;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    th:first-child { border-top-left-radius: var(--radius); }
+    th:last-child { border-top-right-radius: var(--radius); }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+      font-size: 0.82rem;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover { background-color: #f8fafc; }
+    tr.selected-del { background-color: #fee2e2 !important; }
+    tr.edit-hover:hover { background-color: #fef3c7 !important; }
+    .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .font-bold { font-weight: 600; }
+    .text-center { text-align: center; }
+    .highlight { background-color: #fef08a; font-weight: 600; padding: 0 2px; border-radius: 3px; color: #713f12; }
+
+    /* أزرار العلب والساشيات داخل الجدول */
+    .btn-badge-carton {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #dbeafe;
+      border: 1px solid #93c5fd;
+      border-radius: 6px;
+      padding: 4px 8px;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      width: 100%;
+      min-width: 95px;
+    }
+    .btn-badge-carton:hover {
+      background: #bfdbfe;
+      border-color: #2563eb;
+      transform: translateY(-1px);
+    }
+    .btn-badge-carton .badge-ref {
+      font-weight: 800;
+      color: #1e40af;
+      font-size: 0.78rem;
+    }
+    .btn-badge-carton .badge-sub {
+      font-size: 0.68rem;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+
+    .btn-badge-sachet {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      border-radius: 6px;
+      padding: 4px 8px;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      width: 100%;
+      min-width: 95px;
+    }
+    .btn-badge-sachet:hover {
+      background: #fde68a;
+      border-color: #d97706;
+      transform: translateY(-1px);
+    }
+    .btn-badge-sachet .badge-ref {
+      font-weight: 800;
+      color: #854d0e;
+      font-size: 0.78rem;
+    }
+    .btn-badge-sachet .badge-sub {
+      font-size: 0.68rem;
+      color: #b45309;
+      font-weight: 600;
+    }
+
+    /* Pagination */
+    .pagination-bar {
+      padding: 10px 16px;
+      background: #f8fafc;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      border-bottom-left-radius: var(--radius);
+      border-bottom-right-radius: var(--radius);
+    }
+    .pagination-btns { display: flex; gap: 4px; }
+    .page-btn {
+      padding: 4px 10px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+    .page-btn:hover:not(:disabled) { background: #f1f5f9; border-color: #cbd5e1; }
+    .page-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Modals */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--border-color);
+      animation: modalScale 0.2s ease;
+    }
+    @keyframes modalScale {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-header {
+      background: var(--primary);
+      color: #ffffff;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .modal-close { background: none; border: none; color: #ffffff; font-size: 1.3rem; cursor: pointer; opacity: 0.8; transition: opacity 0.15s; }
+    .modal-close:hover { opacity: 1; }
+    .modal-body { padding: 18px; font-size: 0.85rem; }
+
+    /* Fiche Detail Card Styles */
+    .fiche-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .fiche-row:last-child { border-bottom: none; }
+    .fiche-label { font-weight: 600; color: #64748b; font-size: 0.82rem; }
+    .fiche-value { font-weight: 700; color: #0f172a; font-size: 0.85rem; }
+    .fiche-badge-blue {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-weight: 700;
+    }
+    .fiche-badge-green {
+      background: #f0fdf4;
+      color: #16a34a;
+      border: 1px solid #bbf7d0;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-weight: 700;
+    }
+    .fiche-badge-yellow {
+      background: #fefce8;
+      color: #ca8a04;
+      border: 1px solid #fef08a;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-weight: 700;
+    }
+
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.78rem; color: #475569; }
+    .form-group input { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.85rem; outline: none; transition: var(--transition); }
+    .form-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1); }
+    .modal-footer { padding: 12px 18px; background: #f8fafc; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px; }
+    .modal-btn { padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border-color); background: var(--bg-card); transition: var(--transition); }
+    .modal-btn:hover { background: #f1f5f9; }
+    .modal-btn.primary { background: var(--primary); color: #ffffff; border-color: var(--primary); }
+    .modal-btn.primary:hover { background: var(--primary-hover); }
+    
+    .share-option { display: block; width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); text-align: left; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: var(--transition); }
+    .share-option:hover { background: #f8fafc; border-color: var(--primary); color: var(--primary); }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .no-print { display: none !important; }
+      .table-container { border: none; box-shadow: none; }
+      table { font-size: 9.5px; }
+      th, td { padding: 5px 6px; }
+    }
+  
+
+    header { position: relative; }
+    .user-bar { position: absolute; top: 50%; right: 14px; transform: translateY(-50%); display: flex; align-items: center; gap: 8px; }
+    .user-badge { font-size: 0.72rem; font-weight: 700; padding: 4px 9px; border-radius: 999px; background: #e0e7ff; color: #3730a3; }
+    .user-badge.worker { background: #fef3c7; color: #92400e; }
+    .logout-btn { font-family: inherit; font-size: 0.75rem; font-weight: 700; padding: 5px 10px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #334155; cursor: pointer; }
+    .logout-btn:hover { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+    body.role-worker .admin-only { display: none !important; }
+    @media (max-width: 700px) { .user-bar { position: static; transform: none; justify-content: center; margin-top: 8px; } }
+    @media print { .user-bar { display: none !important; } #loginScreen { display: none !important; } }
+
+
+    #loginScreen {
+      --bg-dark: #0b0f19;
+      --card-bg: #111827;
+      --input-bg: #1f293d;
+      --border-color: #2d3748;
+      --primary-color: #6366f1;
+      --primary-hover: #4f46e5;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --radius: 16px;
+    }
+
+    #loginScreen, #loginScreen * { box-sizing: border-box; }
+
+    #loginScreen {
+      position: fixed; inset: 0; z-index: 1000; overflow-y: auto;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-dark); color: var(--text-main);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+#loginScreen .login-container {
+      margin: auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 980px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+    }
+#loginScreen .form-section {
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+#loginScreen .brand-header h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+#loginScreen .brand-header p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+#loginScreen .login-form { margin: 24px 0; }
+#loginScreen .lg-group { margin-bottom: 18px; }
+#loginScreen .lg-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+#loginScreen .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+#loginScreen .input-icon {
+      position: absolute;
+      left: 14px;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+#loginScreen .toggle-pass {
+      position: absolute;
+      right: 14px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+#loginScreen .form-control {
+      width: 100%;
+      padding: 12px 14px 12px 42px;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+#loginScreen .form-control:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+#loginScreen .error-msg {
+      color: #ef4444;
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+      text-align: center;
+      display: none;
+    }
+#loginScreen .btn-submit {
+      width: 100%;
+      padding: 13px;
+      background: var(--primary-color);
+      border: none;
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+#loginScreen .btn-submit:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    /* أزرار التجربة السريعة للحسابين */
+#loginScreen .demo-section {
+      border-top: 1px solid var(--border-color);
+      padding-top: 18px;
+      margin-top: 10px;
+    }
+#loginScreen .demo-title {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+#loginScreen .demo-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+#loginScreen .demo-card {
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+#loginScreen .demo-card:hover {
+      border-color: var(--primary-color);
+      background: #25334e;
+    }
+#loginScreen .demo-icon {
+      font-size: 1.2rem;
+      padding: 6px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+#loginScreen .demo-info h4 {
+      font-size: 0.82rem;
+      color: var(--text-main);
+    }
+#loginScreen .demo-info p {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.2;
+    }
+#loginScreen .image-section {
+      background: #0d1322;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-left: 1px solid var(--border-color);
+    }
+#loginScreen .image-placeholder {
+      width: 100%;
+      height: 100%;
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      text-align: center;
+      background: rgba(15, 23, 42, 0.4);
+    }
+#loginScreen .image-icon-box {
+      width: 64px;
+      height: 64px;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      margin-bottom: 16px;
+      color: var(--primary-color);
+    }
+#loginScreen .image-placeholder h3 {
+      font-size: 1.05rem;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+#loginScreen .image-placeholder p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      max-width: 240px;
+    }
+#loginScreen .footer-note {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 15px;
+    }
+
+    @media (max-width: 768px) {
+      #loginScreen .login-container { grid-template-columns: 1fr; }
+      #loginScreen .image-section { display: none; }
+    }
+  
+  </style>
+</head>
+<body>
+
+  <!-- ===== ÉCRAN DE CONNEXION ===== -->
+  <div id="loginScreen">
+<div class="login-container">
+    <div class="form-section">
+      <div class="brand-header">
+        <h1>Sign In</h1>
+        <p>Enter your username and password to proceed</p>
+      </div>
+
+      <form class="login-form" onsubmit="handleLogin(event)" autocomplete="off">
+        <div class="lg-group">
+          <label for="username">Username</label>
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input type="text" id="username" class="form-control" placeholder="admin or worker" required>
+          </div>
+        </div>
+
+        <div class="lg-group">
+          <label for="password">Password</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="password" class="form-control" placeholder="Password" required>
+            <button type="button" class="toggle-pass" onclick="togglePassword()">👁️</button>
+          </div>
+        </div>
+
+        <div class="error-msg" id="loginError">Nom d'utilisateur ou mot de passe incorrect !</div>
+
+        <button type="submit" class="btn-submit">
+          <span>→</span> Sign In
+        </button>
+      </form>
+
+      <!-- خيارات التجربة السريعة للحسابين -->
+      <div class="demo-section">
+        <div class="demo-title">Select an account type for quick demo:</div>
+        <div class="demo-cards">
+          <!-- حساب المسؤول -->
+          <div class="demo-card" onclick="fillCredentials('admin', 'admin123')">
+            <div class="demo-icon">🛡️</div>
+            <div class="demo-info">
+              <h4>Administrator (Admin)</h4>
+              <p>Full permissions & power to modify app system</p>
+            </div>
+          </div>
+
+          <!-- حساب الخدام -->
+          <div class="demo-card" onclick="fillCredentials('worker', 'worker123')">
+            <div class="demo-icon">🛠️</div>
+            <div class="demo-info">
+              <h4>Simple Worker (Worker)</h4>
+              <p>Specific daily tasks & attendance tracking</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        Secure Portal — Admin & Worker
+      </div>
+    </div>
+
+    <div class="image-section">
+      <div class="image-placeholder">
+        <div class="image-icon-box">🖼️</div>
+        <h3>Reserved Image Space</h3>
+        <p>Clean blank space ready to host your custom photo or factory logo.</p>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ===== APPLICATION ===== -->
+
+  <div class="container" id="appRoot" style="display:none">
+    <header class="no-print">
+      <h1>BASE DE DONNÉES</h1>
+      <div class="user-bar">
+        <span id="userBadge" class="user-badge"></span>
+        <button class="logout-btn" onclick="logout()">⎋ Déconnexion</button>
+      </div>
+    </header>
+
+    <div class="tabs-bar no-print">
+      <button class="tab-btn active-carton" id="tabCarton" onclick="switchTab('cartons')">📦 Caisses & Cartons (CRT)</button>
+      <button class="tab-btn" id="tabSachet" onclick="switchTab('sachets')">🛍️ Sachets d'Emballage (SCH)</button>
+      <button class="tab-btn" id="tabPet" onclick="switchTab('pet')">🥣 Produits Finis PET</button>
+    </div>
+
+    <div class="top-actions-bar no-print">
+      <div class="search-box">
+        <input type="text" id="searchInput" class="search-input" placeholder="Recherche rapide..." autofocus />
+        <div id="countBadge" class="count-badge">0/0</div>
+      </div>
+
+      <div class="btn-group">
+        <button class="act-btn btn-ajouter admin-only" onclick="openAddModal()">+ Ajouter</button>
+        <button class="act-btn btn-modifier admin-only" id="editBtn" onclick="toggleEditMode()">✏️ Modifier</button>
+        <button class="act-btn btn-supprimer admin-only" id="deleteBtn" onclick="toggleDeleteMode()">🗑️ Supprimer</button>
+        <button class="act-btn btn-imprimer" onclick="window.print()">🖨️ Imprimer</button>
+        <button class="act-btn btn-partager" onclick="openShareModal()">🔗 Partager</button>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead><tr id="tableHeaderRow"></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div class="pagination-bar no-print" id="paginationBar"></div>
+    </div>
+  </div>
+
+  <!-- Modal Fiche Info (Caisse ou Sachet) -->
+  <div class="modal-backdrop" id="infoModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span id="infoModalTitle">📄 Fiche Information</span>
+        <button class="modal-close" onclick="closeInfoModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="infoModalBody"></div>
+      <div class="modal-footer">
+        <button class="modal-btn primary" onclick="closeInfoModal()">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Ajouter -->
+  <div class="modal-backdrop" id="addModal">
+    <div class="modal-card">
+      <div class="modal-header"><span id="addModalTitle">Ajouter</span><button class="modal-close" onclick="closeAddModal()">&times;</button></div>
+      <form onsubmit="handleAddSubmit(event)">
+        <div class="modal-body" id="addModalFields"></div>
+        <div class="modal-footer">
+          <button type="button" class="modal-btn" onclick="closeAddModal()">Annuler</button>
+          <button type="submit" class="modal-btn primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Modifier -->
+  <div class="modal-backdrop" id="editModal">
+    <div class="modal-card">
+      <div class="modal-header"><span>Modifier la Référence</span><button class="modal-close" onclick="closeEditModal()">&times;</button></div>
+      <form onsubmit="handleEditSubmit(event)">
+        <div class="modal-body" id="editModalFields"></div>
+        <div class="modal-footer">
+          <button type="button" class="modal-btn" onclick="closeEditModal()">Annuler</button>
+          <button type="submit" class="modal-btn primary">Sauvegarder</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Partager -->
+  <div class="modal-backdrop" id="shareModal">
+    <div class="modal-card">
+      <div class="modal-header"><span>Partager les Données</span><button class="modal-close" onclick="closeShareModal()">&times;</button></div>
+      <div class="modal-body">
+        <button class="share-option" onclick="shareWhatsApp()">📲 Partager sur WhatsApp</button>
+        <button class="share-option" onclick="copyForGoogleSheets()">📊 Copier pour Google Sheets / Excel</button>
+        <button class="share-option" onclick="downloadCSV()">💾 Télécharger Fichier Excel (CSV)</button>
+      </div>
+      <div class="modal-footer"><button class="modal-btn" onclick="closeShareModal()">Fermer</button></div>
+    </div>
+  </div>
+
+  
+  <script>
+
+    const DEFAULT_CARTONS = [
+      { ref: "CRT01", designation: "CAISSE GOBLET IMPRIME", dimensions: "400*400*505", poids: 0.64 },
+      { ref: "CRT02", designation: "CAISSE PLAT PETIT MODEL", dimensions: "415*310*175", poids: 0.36 },
+      { ref: "CRT03", designation: "CAISSE PLAT G/M LUXE", dimensions: "440*335*225", poids: 0.40 },
+      { ref: "CRT04", designation: "CAISSE PLAT G/M ECO", dimensions: "440*330*210", poids: 0.39 },
+      { ref: "CRT05", designation: "CAISSE BARQUETTE CARRE 200 GR", dimensions: "630*510*510", poids: 1.07 },
+      { ref: "CRT06", designation: "CAISSE MADELEINE IMPREME", dimensions: "550*440*410", poids: 0.74 },
+      { ref: "CRT07", designation: "CAISSE COOKIES IMPREME", dimensions: "550*440*430", poids: 0.74 },
+      { ref: "CRT08", designation: "CAISSE 750", dimensions: "570*565*510", poids: 1.11 },
+      { ref: "CRT09", designation: "CAISSE OEUF 6 IMPREME", dimensions: "625*460*445", poids: 0.91 },
+      { ref: "CRT10", designation: "CAISSE 150", dimensions: "640*550*500", poids: 1.16 },
+      { ref: "CRT11", designation: "CAISSE OEUF 10,15 IMPREME", dimensions: "645*550*510", poids: 1.17 },
+      { ref: "CRT12", designation: "CAISSE 1250", dimensions: "710*580*480", poids: 1.28 },
+      { ref: "CRT13", designation: "CAISSE 1750", dimensions: "710*600*480", poids: 1.29 },
+      { ref: "CRT14", designation: "CAISSE 500", dimensions: "640*550*500", poids: 1.14 },
+      { ref: "CRT15", designation: "CAISSE BISCUIT 12 IMPRIME", dimensions: "585*510*510", poids: 1.00 },
+      { ref: "CRT16", designation: "CAISSE CIGARE 12 ET 7 IMPREME", dimensions: "550*440*205", poids: 0.67 },
+      { ref: "CRT17", designation: "CAISSE NV POT", dimensions: "415*335*170", poids: 0.33 },
+      { ref: "CRT18", designation: "CAISSE MACARON 06 IMPRIME", dimensions: "550*440*410", poids: 0.71 },
+      { ref: "CRT19", designation: "CAISSE EMBALLAGE PATISSERIE IMPRIME", dimensions: "550*440*430", poids: 0.72 },
+      { ref: "CRT20", designation: "CAISSE ALVEOL EN DD IMPRIME", dimensions: "500*310*280", poids: 0.69 },
+      { ref: "CRT21", designation: "CAISSE BAC A GLACE", dimensions: "714*580*410", poids: 1.21 },
+      { ref: "CRT22", designation: "CAISSE MADELEINE 10 SS IMPRESSION", dimensions: "400*440*345", poids: 0.54 },
+      { ref: "CRT23", designation: "CAISSE BARQUETTE PERFORE", dimensions: "550*480*390", poids: 0.83 },
+      { ref: "CRT24", designation: "CAISSE 550*400*750", dimensions: "550*400*750", poids: 0.95 },
+      { ref: "CRT25B", designation: "CAISSE SALADE", dimensions: "550*510*535", poids: 1.01 },
+      { ref: "CRT26B", designation: "CAISSE BONBON", dimensions: "770*539*535", poids: 1.18 },
+      { ref: "CRT27B", designation: "CAISSE COUVERCLE BONBON", dimensions: "570*270*535", poids: 0.61 },
+      { ref: "CRT25", designation: "CAISSE SALADE", dimensions: "550*510*370", poids: 1.01 },
+      { ref: "CRT26", designation: "CAISSE BONBON", dimensions: "740*520*340", poids: 1.18 },
+      { ref: "CRT27", designation: "CAISSE COUVERCLE BONBON", dimensions: "530*270*355", poids: 0.40 },
+      { ref: "CRT28", designation: "CAISSE BOIT BONBON CARRE H50", dimensions: "625*360*458", poids: 0.79 },
+      { ref: "CRT29", designation: "CAISSE COUVERCLE CARRE BONBON", dimensions: "420*325*325", poids: 0.45 },
+      { ref: "CRT30", designation: "CAISSE DATTES 2KG", dimensions: "730*580*410", poids: 1.22 },
+      { ref: "CRT31", designation: "CAISSE 560*360*705", dimensions: "560*360*705", poids: 0.86 },
+      { ref: "CRT32", designation: "CAISSE BONBON DEPO", dimensions: "660*540*535", poids: 1.16 },
+      { ref: "CRT33", designation: "CAISSE DATTES 2KG NOUVEAU", dimensions: "730*580*410", poids: 1.22 },
+      { ref: "CRT34", designation: "CAISSE 400*400*550", dimensions: "400*400*550", poids: 0.65 },
+      { ref: "CRT35", designation: "CAISSE 400 *400*595", dimensions: "400 *400*595", poids: 0.65 },
+      { ref: "CRT36", designation: "CAISSE 370*400*630", dimensions: "370*400*630", poids: 0.65 },
+      { ref: "CRT37", designation: "CAISSE PERFORE F 60 CARRE 645*340*565", dimensions: "645*340*570", poids: 0.74 },
+      { ref: "CRT38", designation: "CAISSE410*400*690", dimensions: "410*400*690", poids: 0.78 },
+      { ref: "CRT39", designation: "CAISSE NV ALVEOL DD", dimensions: "500*310*405", poids: 0.74 }
+    ];
+
+    const DEFAULT_SACHETS = [
+      { ref: "SCH01", designation: "SACHET 120*105*22", dimensions: "120*105*22" },
+      { ref: "SCH02", designation: "SACHET 140*115*20", dimensions: "140*115*20" },
+      { ref: "SCH03", designation: "SACHET TRNSPARENT CORNETTO 15*30", dimensions: "15*30" },
+      { ref: "SCH04", designation: "SACHET POT GATEAU", dimensions: "15*60" },
+      { ref: "SCH05", designation: "SACHET PLAT G/M ECO", dimensions: "32*23.5" },
+      { ref: "SCH06", designation: "SACHET PLAT GRAND MODEL LUXE", dimensions: "32*23.5" },
+      { ref: "SCH07", designation: "SACHET POT GLACE", dimensions: "65*60" },
+      { ref: "SCH08", designation: "SACHET BARQUETTE 150 CC", dimensions: "40*90" },
+      { ref: "SCH09", designation: "SACHET BARQUETTE 250 CC", dimensions: "40*90" },
+      { ref: "SCH10", designation: "SACHET BARQUETTE 375 CC", dimensions: "40*90" },
+      { ref: "SCH11", designation: "SACHET BARQUETTE 500 CC", dimensions: "45*90" },
+      { ref: "SCH12", designation: "SACHET BARQUETTE 500 CC L", dimensions: "45*90" },
+      { ref: "SCH13", designation: "SACHET BARQUETTE DATTE 250 GR", dimensions: "50*90" },
+      { ref: "SCH14", designation: "SACHET BARQUETTE 1250 CC L", dimensions: "60*80" },
+      { ref: "SCH15", designation: "SACHET BARQUETTE 1500 CC", dimensions: "60*80" },
+      { ref: "SCH16", designation: "SACHET BARQUETTE 1500 CCL", dimensions: "60*80" },
+      { ref: "SCH17", designation: "SACHIET BARQUETTE 1750 CC", dimensions: "60*80" },
+      { ref: "SCH18", designation: "SACHET BARQUETTE 1750 CC L", dimensions: "60*80" },
+      { ref: "SCH19", designation: "SACHET BARQUETTE 2000 CC", dimensions: "60*80" },
+      { ref: "SCH20", designation: "SACHET BARQUETTE 2000 CC L", dimensions: "60*80" },
+      { ref: "SCH21", designation: "SACHET BARQUETTE 1250 CC", dimensions: "60*80" },
+      { ref: "SCH22", designation: "SACHET BARQUETTE PLASTIQUE 4 COMPARTEMEN", dimensions: "60*80" },
+      { ref: "SCH23", designation: "SACHET BARQUETTE 750 CC", dimensions: "50*90" },
+      { ref: "SCH24", designation: "SACHET BARQUETTE 750 CC L", dimensions: "50*90" },
+      { ref: "SCH25", designation: "SACHET BARQUETTE 1000 CC", dimensions: "50*90" },
+      { ref: "SCH26", designation: "SACHET BARQUETTE 1000 CC L", dimensions: "50*90" },
+      { ref: "SCH27", designation: "SACHET CAISSE GOBLET", dimensions: "95*100" },
+      { ref: "SCH28", designation: "SACHET BARQUETTE SALADE 500 GR", dimensions: "35*80" },
+      { ref: "SCH29", designation: "SACHET DATTE 500 GR SANS IMPRESSION", dimensions: "60*80" },
+      { ref: "SCH30", designation: "SACHET COFFRET DE MACARON 6", dimensions: "42*70" },
+      { ref: "SCH31", designation: "SACHET CIGARE", dimensions: "115*58" },
+      { ref: "SCH32", designation: "SACHET COFFRET DE MACARON 20", dimensions: "42*50" },
+      { ref: "SCH33", designation: "SACHET COFFRET DE PATISSERIE 18", dimensions: "42*50" },
+      { ref: "SCH34", designation: "SACHET COFFRET DE CHOCOLAT 15", dimensions: "42*50" },
+      { ref: "SCH35", designation: "SACHET BESBOUSA/KALBLOUZ", dimensions: "22*70" },
+      { ref: "SCH36", designation: "SACHET COFFRET DE MACARON 10", dimensions: "60*80" },
+      { ref: "SCH37", designation: "SACHET COUVERCLE BAS DE PATISSERIE", dimensions: "42*60" },
+      { ref: "SCH38", designation: "SACHET COUVERCLE HAUT DE PATISSERIE", dimensions: "42*70" },
+      { ref: "SCH39", designation: "SACHET BARQUETTE SALADE 250 GR 35*80", dimensions: "35*80" },
+      { ref: "SCH40", designation: "SACHET BARQUETTE F30 PERFORE", dimensions: "50*90" },
+      { ref: "SCH41", designation: "SACHET BARQUETTE F60 PERFORE", dimensions: "50*90" },
+      { ref: "SCH42", designation: "SACHET BARQUETTE DATTE 2 KG", dimensions: "65*80" },
+      { ref: "SCH43", designation: "SACHET BARQUETTE F80 PERFORE", dimensions: "50*90" },
+      { ref: "SCH44", designation: "SACHET BOBINE PLAT G/M ECO", dimensions: "485MM" },
+      { ref: "SCH45", designation: "SACHET BOBIN GOBLET PET", dimensions: "370 MM" },
+      { ref: "SCH46", designation: "SACHET MULTIUSAGE", dimensions: "28*40" },
+      { ref: "SCH47", designation: "SACHET MULTIUSAGE 1250 ML", dimensions: "30*50" },
+      { ref: "SCH48", designation: "SACHET BOBINE PLAT G/M", dimensions: "515 MM" },
+      { ref: "SCH49", designation: "SACHET BOBINE PLAT P/M", dimensions: "420 MM" },
+      { ref: "SCH50", designation: "SACHET BONBON H130", dimensions: "34*100" },
+      { ref: "SCH51", designation: "SACHET BONBON H75", dimensions: "34*100" },
+      { ref: "SCH52", designation: "SACHET COUVERCLE HAUT BONBON 172", dimensions: "33*60" },
+      { ref: "SCH53", designation: "SACHET COUVERCLE BAS BONBON 172", dimensions: "33*60" },
+      { ref: "SCH54", designation: "SACHET BARQUETTE 1000 CC L PREMIUM", dimensions: "50*90" },
+      { ref: "SCH55", designation: "SACHET BARQUETTE 750 CC PREMIUM", dimensions: "50*90" },
+      { ref: "SCH56", designation: "SACHET BARQUETTE 750 CC L PREMIUM", dimensions: "50*90" },
+      { ref: "SCH57", designation: "SACHET BARQUETTE 1000 CC PREMIUM", dimensions: "50*90" },
+      { ref: "SCH58", designation: "SACHET BOBINE TRANSPARENT 250 ML", dimensions: "420MM" },
+      { ref: "SCH59", designation: "SACHET EMBALLAGE", dimensions: "16,5 *35" },
+      { ref: "SCH60", designation: "SACHET BOIT BONBON CARRE H50", dimensions: "33*60" },
+      { ref: "SCH61", designation: "SACHET COUVERCLE CARRE BONBON", dimensions: "150 30*45" },
+      { ref: "SCH62", designation: "SACHET COUVERCLE GLACE", dimensions: "15*55" },
+      { ref: "SCH63", designation: "SACHET BOIT BONBON CARRE H140", dimensions: "35*80" },
+      { ref: "SCH64", designation: "SACHET BARQUETTE 150 CC PREMIUM", dimensions: "40*90" },
+      { ref: "SCH65", designation: "SACHET BARQUETTE 250 CC PREMIUM", dimensions: "40*90" },
+      { ref: "SCH66", designation: "SACHET BARQUETTE 375 CC PREMIUM", dimensions: "40*90" },
+      { ref: "SCH67", designation: "SACHET BARQUETTE 500 CC PREMIUM", dimensions: "45*90" },
+      { ref: "SCH68", designation: "SACHET BARQUETTE 500 CCL PREMIUM", dimensions: "45*90" },
+      { ref: "SCH69", designation: "SACHET BARQUETTE 1250 CC PREMIUM", dimensions: "60*80" },
+      { ref: "SCH70", designation: "SACHET BARQUETTE 1250 CCL PREMIUM", dimensions: "60*80" },
+      { ref: "SCH71", designation: "SACHET BARQUETTE 1500CC PREMIUM", dimensions: "60*80" },
+      { ref: "SCH72", designation: "SACHET BARQUETTE 1500 CCL PREMIUM", dimensions: "60*80" },
+      { ref: "SCH73", designation: "SACHET BARQUETTE 1750 CC PREMIUM", dimensions: "60*80" },
+      { ref: "SCH74", designation: "SACHET BARQUETTE 1750 CCL PREMIUM", dimensions: "60*80" },
+      { ref: "SCH75", designation: "SACHET BARQUETTE 2000 CC PREMIUM", dimensions: "60*80" },
+      { ref: "SCH76", designation: "SACHET BARQUETTE 2000 CCL PREMIUM", dimensions: "60*80" },
+      { ref: "SCH77", designation: "SACHET BOBINE PLAT G/M ECO", dimensions: "515*260" },
+      { ref: "SCH78", designation: "SACHET BOBINE PLAT G/M LUX", dimensions: "550*275" },
+      { ref: "SCH79", designation: "SACHET BOBINE PLAT G/M 3 COMPARTIMENT", dimensions: "550*275" },
+      { ref: "SCH80", designation: "SACHET TRANSPARENT", dimensions: "40*90" },
+      { ref: "SCH81", designation: "SACHET TRANSPARENT", dimensions: "45*90" },
+      { ref: "SCH82", designation: "SACHET BOBINE PLAT P/M 440*240 MM", dimensions: "440*240" },
+      { ref: "SCH83", designation: "SACHET BARQUETTE PATISSERIE 2000 GR", dimensions: "65*90" },
+      { ref: "SCH84", designation: "SACHET BARQUETTE PATISSERIE 1500 GR", dimensions: "65*90" },
+      { ref: "SCH85", designation: "SACHET TRANSPARENT", dimensions: "100*116" },
+      { ref: "SCH86", designation: "SACHET BARQUETTE PATISSERIE1250 GR", dimensions: "65*90" },
+      { ref: "SCH87", designation: "SACHET BARQUETTE DATTE 2 KG PERMIUM", dimensions: "65*90" }
+    ];
+
+    const DEFAULT_PET = [
+      { reference: "HP018RS09C1P64", mouleMachine: "M05-I1", designation: "PLAT PLASTIQUE PET GRAND MODEL LUXE diametre 210 ROSE CLAIRE TRANSPARENT 09 GR", matiereBobine: "BOBINE SF-PET 170 760 ROSE CLAIRE TRANSPARENT F3 SILICONE 1", pcsSachet: 50, sachetsCarton: 20, totalPcsCarton: 1000, refCarton: "CRT03", refSachet: "SCH78", refPalette: "PL-002", cartonsPalette: 64 },
+      { reference: "HP018TR09C1P64", mouleMachine: "M05-I1", designation: "PLAT PLASTIQUE PET GRAND MODEL LUXE diametre 210 TRANSPARENT 09 GR", matiereBobine: "BOBINE SF-PET 170 760 TRANSPARENT F2 SILICONE 2", pcsSachet: 50, sachetsCarton: 20, totalPcsCarton: 1000, refCarton: "CRT03", refSachet: "SCH78", refPalette: "PL-002", cartonsPalette: 64 },
+      { reference: "HP018VR09C1P64", mouleMachine: "M05-I1", designation: "PLAT PLASTIQUE PET GRAND MODEL LUXE diametre 210 VERT CLAIRE TRANSPARENT 09 GR", matiereBobine: "BOBINE SF-PET 170 760 VERT CLAIRE TRANSPARENT F3 SILICONE 1", pcsSachet: 50, sachetsCarton: 20, totalPcsCarton: 1000, refCarton: "CRT03", refSachet: "SCH78", refPalette: "PL-002", cartonsPalette: 64 },
+      { reference: "HP019BN7,5C1P64", mouleMachine: "M06-I1", designation: "PLAT PLASTIQUE PET ECO - diametre 195 BLANC OPAQUE 7,5 GR", matiereBobine: "BOBINE SF-PET 170 710 BLANC OPAQUE F3 SILICONE 1", pcsSachet: 50, sachetsCarton: 20, totalPcsCarton: 1000, refCarton: "CRT04", refSachet: "SCH77", refPalette: "PL-002", cartonsPalette: 64 },
+      { reference: "HP020BN05C1P80", mouleMachine: "M07-I1", designation: "PLAT PLASTIQUE PET PETIT MODEL - diametre 165 BLANC OPAQUE 05 GR", matiereBobine: "BOBINE SF-PET 160 800 BLANC OPAQUE F3 SILICONE 1", pcsSachet: 50, sachetsCarton: 20, totalPcsCarton: 1000, refCarton: "CRT02", refSachet: "SCH82", refPalette: "PL-002", cartonsPalette: 80 },
+      { reference: "HP021TR05C1P30", mouleMachine: "M08-I1", designation: "GOBLET PLASTIQUE PET COMMUN - diametre 82 TRANSPARENT 05 GR", matiereBobine: "BOBINE SF-PET 640 770 TRANSPARENT F1 SILICONE 2", pcsSachet: 60, sachetsCarton: 25, totalPcsCarton: 1500, refCarton: "CRT07", refSachet: "SCH45", refPalette: "PL-003", cartonsPalette: 30 },
+      { reference: "HP022TR05C1P30", mouleMachine: "M09-I4", designation: "BARQUETTE PLASTIQUE PET COOKIES HAUT 3 COMPARTIMENTS CARRE TRANSPARENT 05 GR", matiereBobine: "BOBINE SF-PET 215 785 TRANSPARENT F3 SILICONE 3", pcsSachet: 1, sachetsCarton: 1932, totalPcsCarton: 1932, refCarton: "CRT07", refSachet: "SCH01", refPalette: "PL-003", cartonsPalette: 30 },
+      { reference: "HP023TR3,5C1P80", mouleMachine: "M08-I2", designation: "POT PLASTIQUE PET GLACES - diametre 80 TRANSPARENT 3,5 GR", matiereBobine: "BOBINE SF-PET 440 770 TRANSPARENT F1 SILICONE 2", pcsSachet: 1, sachetsCarton: 400, totalPcsCarton: 400, refCarton: "CRT17", refSachet: "SCH31", refPalette: "PL-003", cartonsPalette: 80 },
+      { reference: "HP023TR3,8C1P30", mouleMachine: "M08-I2", designation: "POT PLASTIQUE PET GLACES - diametre 80 TRANSPARENT 3,8 GR", matiereBobine: "BOBINE SF-PET 480 770 TRANSPARENT F1 SILICONE 2", pcsSachet: 60, sachetsCarton: 25, totalPcsCarton: 1500, refCarton: "CRT07", refSachet: "SCH45", refPalette: "PL-003", cartonsPalette: 30 },
+      { reference: "HP024DR05C1P28", mouleMachine: "M08-I3", designation: "POT PLASTIQUE PET GATEAU - diametre 80 DORE FONCE OPAQUE 05 GR", matiereBobine: "BOBINE SF-PET 620 770 DORE FONCE OPAQUE F3 SILICONE 2", pcsSachet: 1, sachetsCarton: 1500, totalPcsCarton: 1500, refCarton: "CRT01", refSachet: "SCH27", refPalette: "PL-001", cartonsPalette: 28 },
+      { reference: "HP024TR03C1P80", mouleMachine: "M08-I3", designation: "POT PLASTIQUE PET GATEAU - diametre 80 TRANSPARENT 03 GR", matiereBobine: "BOBINE SF-PET 375 770 TRANSPARENT F1 SILICONE 2", pcsSachet: 1, sachetsCarton: 400, totalPcsCarton: 400, refCarton: "CRT17", refSachet: "SCH31", refPalette: "PL-002", cartonsPalette: 80 },
+      { reference: "HP024TR04C1P80", mouleMachine: "M08-I3", designation: "POT PLASTIQUE PET GATEAU - diametre 80 TRANSPARENT 04 GR", matiereBobine: "BOBINE SF-PET 400 770 TRANSPARENT F1 SILICONE 2", pcsSachet: 1, sachetsCarton: 400, totalPcsCarton: 400, refCarton: "CRT17", refSachet: "SCH31", refPalette: "PL-002", cartonsPalette: 80 },
+      { reference: "HP025ML06C1P30", mouleMachine: "M09-I3", designation: "BARQUETTE PLASTIQUE PET COOKIES - 2 COMPARTIMENTS RECTANGLE MIEL TRANSPARENT 06 GR", matiereBobine: "BOBINE SF-PET 275 785 MIEL TRANSPARENT F3 SILICONE 2", pcsSachet: 1, sachetsCarton: 2100, totalPcsCarton: 2100, refCarton: "CRT07", refSachet: "SCH07", refPalette: "PL-003", cartonsPalette: 30 },
+      { reference: "HP026TR25C1P20", mouleMachine: "M13-I2", designation: "BARQUETTE PLASTIQUE PET BISCUITS BIG 12 COMPARTIMENTS ROND TRANSPARENT 25 GR", matiereBobine: "BOBINE SF-PET 340 750 TRANSPARENT F3 SILICONE 3", pcsSachet: 1, sachetsCarton: 600, totalPcsCarton: 600, refCarton: "CRT15", refSachet: "SCH02", refPalette: "PL-002", cartonsPalette: 20 },
+      { reference: "HP027TR18C1P24", mouleMachine: "M38-I1", designation: "BARQUETTE PLASTIQUE PET PERFORE F 30 TRANSPARENT 18 GR", matiereBobine: "BOBINE SF-PET 280 705 TRANSPARENT F2 SILICONE 2", pcsSachet: 4, sachetsCarton: 150, totalPcsCarton: 600, refCarton: "CRT23", refSachet: "SCH40", refPalette: "PL-006", cartonsPalette: 24 }
+    ];
+
+    let currentTab = 'cartons';
+    let cartons = JSON.parse(localStorage.getItem('pet_db_cartons')) || DEFAULT_CARTONS;
+    let sachets = JSON.parse(localStorage.getItem('pet_db_sachets')) || DEFAULT_SACHETS;
+    let petProducts = JSON.parse(localStorage.getItem('pet_db_pet')) || DEFAULT_PET;
+
+    function saveAll() {
+      localStorage.setItem('pet_db_cartons', JSON.stringify(cartons));
+      localStorage.setItem('pet_db_sachets', JSON.stringify(sachets));
+      localStorage.setItem('pet_db_pet', JSON.stringify(petProducts));
+    }
+
+    const ITEMS_PER_PAGE = 15;
+    let currentPage = 1;
+    let isDeleteMode = false;
+    let isEditMode = false;
+    let selectedIndices = new Set();
+
+    const input = document.getElementById('searchInput');
+    const tbody = document.getElementById('tableBody');
+    const countBadge = document.getElementById('countBadge');
+    const paginationBar = document.getElementById('paginationBar');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const editBtn = document.getElementById('editBtn');
+
+    function switchTab(tab) {
+      currentTab = tab;
+      currentPage = 1;
+      isEditMode = false;
+      isDeleteMode = false;
+      selectedIndices.clear();
+      updateButtons();
+
+      document.getElementById('tabCarton').className = 'tab-btn' + (tab === 'cartons' ? ' active-carton' : '');
+      document.getElementById('tabSachet').className = 'tab-btn' + (tab === 'sachets' ? ' active-sachet' : '');
+      document.getElementById('tabPet').className = 'tab-btn' + (tab === 'pet' ? ' active-pet' : '');
+
+      renderTable();
+    }
+
+    function highlightText(text, query) {
+      if (!query || text === undefined || text === null) return text;
+      const regex = new RegExp(`(${String(query).replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')})`, 'gi');
+      return String(text).replace(regex, '<span class="highlight">$1</span>');
+    }
+
+    function toggleEditMode() {
+      isEditMode = !isEditMode;
+      if (isEditMode) {
+        isDeleteMode = false;
+        selectedIndices.clear();
+      }
+      updateButtons();
+      renderTable();
+    }
+
+    function toggleDeleteMode() {
+      isDeleteMode = !isDeleteMode;
+      if (isDeleteMode) {
+        isEditMode = false;
+      } else {
+        if (selectedIndices.size > 0 && confirm(`Voulez-vous supprimer les ${selectedIndices.size} lignes sélectionnées ?`)) {
+          if (currentTab === 'cartons') cartons = cartons.filter((_, idx) => !selectedIndices.has(idx));
+          else if (currentTab === 'sachets') sachets = sachets.filter((_, idx) => !selectedIndices.has(idx));
+          else petProducts = petProducts.filter((_, idx) => !selectedIndices.has(idx));
+          saveAll();
+          selectedIndices.clear();
+        }
+      }
+      updateButtons();
+      renderTable();
+    }
+
+    function updateButtons() {
+      if (isEditMode) {
+        editBtn.classList.add('active');
+        editBtn.innerHTML = '✏️ Annuler';
+      } else {
+        editBtn.classList.remove('active');
+        editBtn.innerHTML = '✏️ Modifier';
+      }
+
+      if (isDeleteMode) {
+        deleteBtn.classList.add('active');
+        deleteBtn.innerHTML = selectedIndices.size > 0 ? `🗑️ Supprimer (${selectedIndices.size})` : '🗑️ Annuler';
+      } else {
+        deleteBtn.classList.remove('active');
+        deleteBtn.innerHTML = '🗑️ Supprimer';
+      }
+    }
+
+    function toggleSelectRow(idx) {
+      if (selectedIndices.has(idx)) selectedIndices.delete(idx);
+      else selectedIndices.add(idx);
+      updateButtons();
+      renderTable();
+    }
+
+    function getActiveList() {
+      if (currentTab === 'cartons') return cartons;
+      if (currentTab === 'sachets') return sachets;
+      return petProducts;
+    }
+
+    function showCartonInfo(refCode) {
+      const crt = cartons.find(c => c.ref === refCode);
+      const title = document.getElementById('infoModalTitle');
+      const body = document.getElementById('infoModalBody');
+
+      title.innerHTML = `📦 Fiche Caisse Carton`;
+
+      if (crt) {
+        body.innerHTML = `
+          <div class="fiche-row">
+            <span class="fiche-label">Référence:</span>
+            <span class="fiche-value font-mono font-bold">${crt.ref}</span>
+          </div>
+          <div class="fiche-row">
+            <span class="fiche-label">Désignation:</span>
+            <span class="fiche-value" style="max-width: 250px; text-align: right;">${crt.designation}</span>
+          </div>
+          <div class="fiche-row">
+            <span class="fiche-label">Dimensions (mm):</span>
+            <span class="fiche-badge-blue">${crt.dimensions}</span>
+          </div>
+          <div class="fiche-row">
+            <span class="fiche-label">Poids à vide (Tare):</span>
+            <span class="fiche-badge-green">${Number(crt.poids).toFixed(2)} kg</span>
+          </div>
+        `;
+      } else {
+        body.innerHTML = `<div style="text-align:center; padding: 20px; color:#ef4444;">Référence Carton <strong>${refCode}</strong> introuvable.</div>`;
+      }
+
+      document.getElementById('infoModal').classList.add('open');
+    }
+
+    function showSachetInfo(refCode) {
+      const sch = sachets.find(s => s.ref === refCode);
+      const title = document.getElementById('infoModalTitle');
+      const body = document.getElementById('infoModalBody');
+
+      title.innerHTML = `🛍️ Fiche Sachet d'Emballage`;
+
+      if (sch) {
+        body.innerHTML = `
+          <div class="fiche-row">
+            <span class="fiche-label">Référence:</span>
+            <span class="fiche-value font-mono font-bold">${sch.ref}</span>
+          </div>
+          <div class="fiche-row">
+            <span class="fiche-label">Désignation:</span>
+            <span class="fiche-value" style="max-width: 250px; text-align: right;">${sch.designation}</span>
+          </div>
+          <div class="fiche-row">
+            <span class="fiche-label">Dimensions (mm):</span>
+            <span class="fiche-badge-yellow">${sch.dimensions}</span>
+          </div>
+        `;
+      } else {
+        body.innerHTML = `<div style="text-align:center; padding: 20px; color:#ef4444;">Référence Sachet <strong>${refCode}</strong> introuvable.</div>`;
+      }
+
+      document.getElementById('infoModal').classList.add('open');
+    }
+
+    function closeInfoModal() {
+      document.getElementById('infoModal').classList.remove('open');
+    }
+
+    function renderTable() {
+      const q = input.value.trim().toLowerCase();
+      const list = getActiveList();
+
+      let filtered = list.map((item, originalIdx) => ({ ...item, originalIdx }));
+
+      if (q) {
+        filtered = filtered.filter(item => {
+          return Object.values(item).some(val => String(val).toLowerCase().includes(q));
+        });
+      }
+
+      countBadge.textContent = `${filtered.length}/${list.length}`;
+
+      const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+      if (currentPage > totalPages) currentPage = 1;
+
+      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+      const paginated = filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+      const headerRow = document.getElementById('tableHeaderRow');
+
+      if (currentTab === 'cartons') {
+        headerRow.innerHTML = `
+          ${isDeleteMode ? '<th class="th-blue text-center" style="width: 32px;">☑</th>' : ''}
+          ${isEditMode ? '<th class="th-blue text-center" style="width: 32px;">✎</th>' : ''}
+          <th class="th-blue text-center" style="width: 40px;">#</th>
+          <th class="th-blue">REF</th>
+          <th class="th-blue">DÉSIGNATION</th>
+          <th class="th-blue text-center">DIMENSIONS (MM)</th>
+          <th class="th-blue text-center">POIDS (KG)</th>
+          <th class="th-blue text-center no-print" style="width: 50px;">ACTION</th>
+        `;
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: #64748b;">Aucun carton trouvé</td></tr>`;
+          paginationBar.innerHTML = '';
+          return;
+        }
+
+        tbody.innerHTML = paginated.map((item, idx) => {
+          const isChecked = selectedIndices.has(item.originalIdx);
+          return `
+            <tr class="${isChecked ? 'selected-del' : ''} ${isEditMode ? 'edit-hover' : ''}" onclick="${isDeleteMode ? `toggleSelectRow(${item.originalIdx})` : (isEditMode ? `openEditModal(${item.originalIdx})` : '')}">
+              ${isDeleteMode ? `<td class="text-center"><input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectRow(${item.originalIdx})" /></td>` : ''}
+              ${isEditMode ? `<td class="text-center"><button onclick="event.stopPropagation(); openEditModal(${item.originalIdx})" style="border: 1px solid #d97706; background: #fff; border-radius: 4px; cursor: pointer; padding: 2px 6px; font-size: 0.75rem;">✎</button></td>` : ''}
+              <td class="text-center font-mono" style="color: #94a3b8;">${startIndex + idx + 1}</td>
+              <td class="font-mono font-bold" style="white-space: nowrap;"><span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; border: 1px solid #93c5fd;">${highlightText(item.ref, q)}</span></td>
+              <td style="font-weight: 500;">${highlightText(item.designation, q)}</td>
+              <td class="text-center font-mono" style="color: #475569;">${highlightText(item.dimensions, q)}</td>
+              <td class="text-center font-mono font-bold">${highlightText(Number(item.poids).toFixed(2), q)} kg</td>
+              <td class="text-center no-print admin-only">
+                <button onclick="event.stopPropagation(); openEditModal(${item.originalIdx})" style="background: none; border: none; cursor: pointer; font-size: 0.9rem;" title="Modifier">✏️</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } else if (currentTab === 'sachets') {
+        headerRow.innerHTML = `
+          ${isDeleteMode ? '<th class="th-yellow text-center" style="width: 32px;">☑</th>' : ''}
+          ${isEditMode ? '<th class="th-yellow text-center" style="width: 32px;">✎</th>' : ''}
+          <th class="th-yellow text-center" style="width: 40px;">#</th>
+          <th class="th-yellow">RÉFÉRENCE</th>
+          <th class="th-yellow">DÉSIGNATION PRODUIT</th>
+          <th class="th-yellow text-center">DIMENSIONS (MM)</th>
+          <th class="th-yellow text-center no-print" style="width: 50px;">ACTION</th>
+        `;
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 30px; color: #64748b;">Aucun sachet trouvé</td></tr>`;
+          paginationBar.innerHTML = '';
+          return;
+        }
+
+        tbody.innerHTML = paginated.map((item, idx) => {
+          const isChecked = selectedIndices.has(item.originalIdx);
+          return `
+            <tr class="${isChecked ? 'selected-del' : ''} ${isEditMode ? 'edit-hover' : ''}" onclick="${isDeleteMode ? `toggleSelectRow(${item.originalIdx})` : (isEditMode ? `openEditModal(${item.originalIdx})` : '')}">
+              ${isDeleteMode ? `<td class="text-center"><input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectRow(${item.originalIdx})" /></td>` : ''}
+              ${isEditMode ? `<td class="text-center"><button onclick="event.stopPropagation(); openEditModal(${item.originalIdx})" style="border: 1px solid #d97706; background: #fff; border-radius: 4px; cursor: pointer; padding: 2px 6px; font-size: 0.75rem;">✎</button></td>` : ''}
+              <td class="text-center font-mono" style="color: #94a3b8;">${startIndex + idx + 1}</td>
+              <td class="font-mono font-bold" style="white-space: nowrap;"><span style="background: #fef3c7; color: #854d0e; padding: 2px 6px; border-radius: 4px; border: 1px solid #fde68a;">${highlightText(item.ref, q)}</span></td>
+              <td style="font-weight: 500;">${highlightText(item.designation, q)}</td>
+              <td class="text-center font-mono font-bold" style="color: #713f12;">${highlightText(item.dimensions, q)}</td>
+              <td class="text-center no-print admin-only">
+                <button onclick="event.stopPropagation(); openEditModal(${item.originalIdx})" style="background: none; border: none; cursor: pointer; font-size: 0.9rem;" title="Modifier">✏️</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } else {
+        headerRow.innerHTML = `
+          ${isDeleteMode ? '<th class="th-default text-center" style="width: 32px;">☑</th>' : ''}
+          ${isEditMode ? '<th class="th-default text-center" style="width: 32px;">✎</th>' : ''}
+          <th class="th-default text-center" style="width: 40px;">#</th>
+          <th class="th-default">RÉFÉRENCE</th>
+          <th class="th-default text-center">MOULE / MACHINE</th>
+          <th class="th-default">DÉSIGNATION PRODUIT</th>
+          <th class="th-default">MATIÈRE BOBINE</th>
+          <th class="th-default text-center">PCS/SACHET</th>
+          <th class="th-default text-center">SACHETS/CTN</th>
+          <th class="th-default text-center">TOTAL PCS/CTN</th>
+          <th class="th-default text-center" style="min-width: 110px;">RÉF CARTON</th>
+          <th class="th-default text-center" style="min-width: 110px;">RÉF SACHET</th>
+          <th class="th-default text-center">RÉF PALETTE</th>
+          <th class="th-default text-center">CTNS/PALETTE</th>
+          <th class="th-default text-center no-print" style="width: 50px;">ACTION</th>
+        `;
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; padding: 30px; color: #64748b;">Aucun produit trouvé</td></tr>`;
+          paginationBar.innerHTML = '';
+          return;
+        }
+
+        tbody.innerHTML = paginated.map((item, idx) => {
+          const isChecked = selectedIndices.has(item.originalIdx);
+          
+          const matchingCarton = cartons.find(c => c.ref === item.refCarton);
+          const matchingSachet = sachets.find(s => s.ref === item.refSachet);
+
+          const cartonSubText = matchingCarton ? `${matchingCarton.dimensions}<br>${matchingCarton.poids} kg` : '';
+          const sachetSubText = matchingSachet ? `${matchingSachet.dimensions}` : '';
+
+          return `
+            <tr class="${isChecked ? 'selected-del' : ''} ${isEditMode ? 'edit-hover' : ''}" onclick="${isDeleteMode ? `toggleSelectRow(${item.originalIdx})` : (isEditMode ? `openEditModal(${item.originalIdx})` : '')}">
+              ${isDeleteMode ? `<td class="text-center"><input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectRow(${item.originalIdx})" /></td>` : ''}
+              ${isEditMode ? `<td class="text-center"><button onclick="event.stopPropagation(); openEditModal(${item.originalIdx})" style="border: 1px solid #d97706; background: #fff; border-radius: 4px; cursor: pointer; padding: 2px 6px; font-size: 0.75rem;">✎</button></td>` : ''}
+              <td class="text-center font-mono" style="color: #94a3b8;">${startIndex + idx + 1}</td>
+              <td class="font-mono font-bold" style="white-space: nowrap;">${highlightText(item.reference, q)}</td>
+              <td class="text-center font-mono" style="color: #475569;">${highlightText(item.mouleMachine, q)}</td>
+              <td style="font-weight: 500;">${highlightText(item.designation, q)}</td>
+              <td class="font-mono" style="font-size: 0.78rem; color: #64748b;">${highlightText(item.matiereBobine, q)}</td>
+              <td class="text-center font-mono">${item.pcsSachet}</td>
+              <td class="text-center font-mono">${item.sachetsCarton}</td>
+              <td class="text-center font-mono font-bold" style="background: #f8fafc;">${Number(item.totalPcsCarton).toLocaleString()}</td>
+              
+              <td class="text-center">
+                <button class="btn-badge-carton" onclick="event.stopPropagation(); showCartonInfo('${item.refCarton}')" title="Voir fiche carton">
+                  <span class="badge-ref">${item.refCarton}</span>
+                  ${cartonSubText ? `<span class="badge-sub">${cartonSubText}</span>` : ''}
+                </button>
+              </td>
+
+              <td class="text-center">
+                <button class="btn-badge-sachet" onclick="event.stopPropagation(); showSachetInfo('${item.refSachet}')" title="Voir fiche sachet">
+                  <span class="badge-ref">${item.refSachet}</span>
+                  ${sachetSubText ? `<span class="badge-sub">${sachetSubText}</span>` : ''}
+                </button>
+              </td>
+
+              <td class="text-center font-mono">${item.refPalette}</td>
+              <td class="text-center font-mono">${item.cartonsPalette}</td>
+              <td class="text-center no-print admin-only">
+                <button onclick="event.stopPropagation(); openEditModal(${item.originalIdx})" style="background: none; border: none; cursor: pointer; font-size: 0.9rem;" title="Modifier">✏️</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      let btns = '';
+      if (totalPages > 1) {
+        btns = `
+          <div class="pagination-btns">
+            <button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">&lt;</button>
+            ${Array.from({ length: totalPages }).map((_, i) => `
+              <button class="page-btn ${currentPage === i + 1 ? 'active' : ''}" onclick="changePage(${i + 1})">${i + 1}</button>
+            `).join('')}
+            <button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">&gt;</button>
+          </div>
+        `;
+      }
+
+      paginationBar.innerHTML = `
+        <div>Affichage de <strong>${startIndex + 1}</strong> à <strong>${Math.min(startIndex + ITEMS_PER_PAGE, filtered.length)}</strong> sur <strong>${filtered.length}</strong> entrées</div>
+        ${btns}
+      `;
+    }
+
+    window.changePage = function(page) { currentPage = page; renderTable(); };
+    input.addEventListener('input', () => { currentPage = 1; renderTable(); });
+
+    // Modals
+    function openAddModal() {
+      const container = document.getElementById('addModalFields');
+      if (currentTab === 'cartons') {
+        document.getElementById('addModalTitle').textContent = 'Ajouter une Caisse Carton';
+        container.innerHTML = `
+          <div class="form-group"><label>Référence (Ref) *</label><input type="text" id="addCrtRef" required /></div>
+          <div class="form-group"><label>Désignation *</label><input type="text" id="addCrtDesig" required /></div>
+          <div class="form-group"><label>Dimensions (mm) *</label><input type="text" id="addCrtDim" required /></div>
+          <div class="form-group"><label>Poids (kg) *</label><input type="number" step="0.01" id="addCrtPoids" required /></div>
+        `;
+      } else if (currentTab === 'sachets') {
+        document.getElementById('addModalTitle').textContent = 'Ajouter un Sachet';
+        container.innerHTML = `
+          <div class="form-group"><label>Référence *</label><input type="text" id="addSchRef" required /></div>
+          <div class="form-group"><label>Désignation Produit *</label><input type="text" id="addSchDesig" required /></div>
+          <div class="form-group"><label>Dimensions (mm) *</label><input type="text" id="addSchDim" required /></div>
+        `;
+      } else {
+        document.getElementById('addModalTitle').textContent = 'Ajouter un Produit PET';
+        container.innerHTML = `
+          <div class="form-group"><label>Référence *</label><input type="text" id="addPetRef" required /></div>
+          <div class="form-group"><label>Moule / Machine</label><input type="text" id="addPetMoule" /></div>
+          <div class="form-group"><label>Désignation *</label><input type="text" id="addPetDesig" required /></div>
+          <div class="form-group"><label>Matière Bobine</label><input type="text" id="addPetBobine" /></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="form-group"><label>Pcs/Sachet</label><input type="number" id="addPetPcs" value="50" /></div>
+            <div class="form-group"><label>Sachets/Ctn</label><input type="number" id="addPetSachets" value="20" /></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <div class="form-group"><label>Réf Carton</label><input type="text" id="addPetCarton" value="CRT01" /></div>
+            <div class="form-group"><label>Réf Sachet</label><input type="text" id="addPetSachet" value="SCH01" /></div>
+            <div class="form-group"><label>Réf Palette</label><input type="text" id="addPetPal" value="PL-001" /></div>
+          </div>
+          <div class="form-group"><label>Cartons/Palette</label><input type="number" id="addPetColisage" value="30" /></div>
+        `;
+      }
+      document.getElementById('addModal').classList.add('open');
+    }
+    function closeAddModal() { document.getElementById('addModal').classList.remove('open'); }
+
+    function handleAddSubmit(e) {
+      e.preventDefault();
+      if (currentTab === 'cartons') {
+        const ref = document.getElementById('addCrtRef').value.trim().toUpperCase();
+        const desig = document.getElementById('addCrtDesig').value.trim().toUpperCase();
+        const dim = document.getElementById('addCrtDim').value.trim();
+        const poids = parseFloat(document.getElementById('addCrtPoids').value) || 0;
+        cartons.unshift({ ref, designation: desig, dimensions: dim, poids });
+      } else if (currentTab === 'sachets') {
+        const ref = document.getElementById('addSchRef').value.trim().toUpperCase();
+        const desig = document.getElementById('addSchDesig').value.trim().toUpperCase();
+        const dim = document.getElementById('addSchDim').value.trim();
+        sachets.unshift({ ref, designation: desig, dimensions: dim });
+      } else {
+        const ref = document.getElementById('addPetRef').value.trim().toUpperCase();
+        const moule = document.getElementById('addPetMoule').value.trim().toUpperCase();
+        const desig = document.getElementById('addPetDesig').value.trim().toUpperCase();
+        const bob = document.getElementById('addPetBobine').value.trim().toUpperCase();
+        const pcs = Number(document.getElementById('addPetPcs').value) || 1;
+        const sach = Number(document.getElementById('addPetSachets').value) || 1;
+        const ctn = document.getElementById('addPetCarton').value.trim().toUpperCase();
+        const sch = document.getElementById('addPetSachet').value.trim().toUpperCase();
+        const pal = document.getElementById('addPetPal').value.trim().toUpperCase();
+        const col = Number(document.getElementById('addPetColisage').value) || 1;
+        petProducts.unshift({
+          reference: ref, mouleMachine: moule, designation: desig, matiereBobine: bob,
+          pcsSachet: pcs, sachetsCarton: sach, totalPcsCarton: pcs * sach,
+          refCarton: ctn, refSachet: sch, refPalette: pal, cartonsPalette: col
+        });
+      }
+      saveAll();
+      closeAddModal();
+      renderTable();
+    }
+
+    let currentEditIdx = null;
+    function openEditModal(originalIdx) {
+      currentEditIdx = originalIdx;
+      const list = getActiveList();
+      const item = list[originalIdx];
+      const container = document.getElementById('editModalFields');
+
+      if (currentTab === 'cartons') {
+        container.innerHTML = `
+          <div class="form-group"><label>Référence (Ref) *</label><input type="text" id="editCrtRef" value="${item.ref}" required /></div>
+          <div class="form-group"><label>Désignation *</label><input type="text" id="editCrtDesig" value="${item.designation}" required /></div>
+          <div class="form-group"><label>Dimensions (mm) *</label><input type="text" id="editCrtDim" value="${item.dimensions}" required /></div>
+          <div class="form-group"><label>Poids (kg) *</label><input type="number" step="0.01" id="editCrtPoids" value="${item.poids}" required /></div>
+        `;
+      } else if (currentTab === 'sachets') {
+        container.innerHTML = `
+          <div class="form-group"><label>Référence *</label><input type="text" id="editSchRef" value="${item.ref}" required /></div>
+          <div class="form-group"><label>Désignation Produit *</label><input type="text" id="editSchDesig" value="${item.designation}" required /></div>
+          <div class="form-group"><label>Dimensions (mm) *</label><input type="text" id="editSchDim" value="${item.dimensions}" required /></div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="form-group"><label>Référence *</label><input type="text" id="editPetRef" value="${item.reference}" required /></div>
+          <div class="form-group"><label>Moule / Machine</label><input type="text" id="editPetMoule" value="${item.mouleMachine}" /></div>
+          <div class="form-group"><label>Désignation *</label><input type="text" id="editPetDesig" value="${item.designation}" required /></div>
+          <div class="form-group"><label>Matière Bobine</label><input type="text" id="editPetBobine" value="${item.matiereBobine}" /></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="form-group"><label>Pcs/Sachet</label><input type="number" id="editPetPcs" value="${item.pcsSachet}" /></div>
+            <div class="form-group"><label>Sachets/Ctn</label><input type="number" id="editPetSachets" value="${item.sachetsCarton}" /></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <div class="form-group"><label>Réf Carton</label><input type="text" id="editPetCarton" value="${item.refCarton}" /></div>
+            <div class="form-group"><label>Réf Sachet</label><input type="text" id="editPetSachet" value="${item.refSachet}" /></div>
+            <div class="form-group"><label>Réf Palette</label><input type="text" id="editPetPal" value="${item.refPalette}" /></div>
+          </div>
+          <div class="form-group"><label>Cartons/Palette</label><input type="number" id="editPetColisage" value="${item.cartonsPalette}" /></div>
+        `;
+      }
+      document.getElementById('editModal').classList.add('open');
+    }
+    function closeEditModal() { document.getElementById('editModal').classList.remove('open'); }
+
+    function handleEditSubmit(e) {
+      e.preventDefault();
+      if (currentEditIdx === null) return;
+
+      if (currentTab === 'cartons') {
+        cartons[currentEditIdx] = {
+          ref: document.getElementById('editCrtRef').value.trim().toUpperCase(),
+          designation: document.getElementById('editCrtDesig').value.trim().toUpperCase(),
+          dimensions: document.getElementById('editCrtDim').value.trim(),
+          poids: parseFloat(document.getElementById('editCrtPoids').value) || 0
+        };
+      } else if (currentTab === 'sachets') {
+        sachets[currentEditIdx] = {
+          ref: document.getElementById('editSchRef').value.trim().toUpperCase(),
+          designation: document.getElementById('editSchDesig').value.trim().toUpperCase(),
+          dimensions: document.getElementById('editSchDim').value.trim()
+        };
+      } else {
+        const pcs = Number(document.getElementById('editPetPcs').value) || 1;
+        const sach = Number(document.getElementById('editPetSachets').value) || 1;
+        petProducts[currentEditIdx] = {
+          reference: document.getElementById('editPetRef').value.trim().toUpperCase(),
+          mouleMachine: document.getElementById('editPetMoule').value.trim().toUpperCase(),
+          designation: document.getElementById('editPetDesig').value.trim().toUpperCase(),
+          matiereBobine: document.getElementById('editPetBobine').value.trim().toUpperCase(),
+          pcsSachet: pcs, sachetsCarton: sach, totalPcsCarton: pcs * sach,
+          refCarton: document.getElementById('editPetCarton').value.trim().toUpperCase(),
+          refSachet: document.getElementById('editPetSachet').value.trim().toUpperCase(),
+          refPalette: document.getElementById('editPetPal').value.trim().toUpperCase(),
+          cartonsPalette: Number(document.getElementById('editPetColisage').value) || 1
+        };
+      }
+      saveAll();
+      closeEditModal();
+      renderTable();
+    }
+
+    function openShareModal() { document.getElementById('shareModal').classList.add('open'); }
+    function closeShareModal() { document.getElementById('shareModal').classList.remove('open'); }
+
+    function shareWhatsApp() {
+      const list = getActiveList();
+      const sample = list.slice(0, 10).map(i => `• *${i.ref || i.reference}* - ${i.designation}`).join('\n');
+      const text = `*BASE DE DONNÉES*\nTable: ${currentTab.toUpperCase()}\nTotal: ${list.length} références\n\n${sample}`;
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    }
+
+    function copyForGoogleSheets() {
+      let headers = [];
+      let rows = [];
+      if (currentTab === 'cartons') {
+        headers = ['Ref', 'Désignation', 'Dimensions (mm)', 'Poids (kg)'];
+        rows = cartons.map(c => [c.ref, c.designation, c.dimensions, c.poids]);
+      } else if (currentTab === 'sachets') {
+        headers = ['Référence', 'Désignation Produit', 'Dimensions (mm)'];
+        rows = sachets.map(s => [s.ref, s.designation, s.dimensions]);
+      } else {
+        headers = ['Référence', 'Moule/Machine', 'Désignation', 'Bobine', 'Pcs/Sachet', 'Sachets/Carton', 'Total Pcs/Carton', 'Réf Carton', 'Réf Sachet', 'Réf Palette', 'Ctns/Palette'];
+        rows = petProducts.map(p => [p.reference, p.mouleMachine, p.designation, p.matiereBobine, p.pcsSachet, p.sachetsCarton, p.totalPcsCarton, p.refCarton, p.refSachet, p.refPalette, p.cartonsPalette]);
+      }
+      const tsv = [headers.join('\t'), ...rows.map(r => r.join('\t'))].join('\n');
+      navigator.clipboard.writeText(tsv);
+      alert('Tableau copié ! Vous pouvez coller dans Google Sheets ou Excel avec Ctrl + V');
+      closeShareModal();
+    }
+
+    function downloadCSV() {
+      let headers = [];
+      let rows = [];
+      let filename = `base_de_donnees_${currentTab}.csv`;
+      if (currentTab === 'cartons') {
+        headers = ['Ref', 'Designation', 'Dimensions (mm)', 'Poids (kg)'];
+        rows = cartons.map(c => [`"${c.ref}"`, `"${c.designation}"`, `"${c.dimensions}"`, c.poids]);
+      } else if (currentTab === 'sachets') {
+        headers = ['Reference', 'Designation Produit', 'Dimensions (mm)'];
+        rows = sachets.map(s => [`"${s.ref}"`, `"${s.designation}"`, `"${s.dimensions}"`]);
+      } else {
+        headers = ['Reference', 'Moule/Machine', 'Designation', 'Bobine', 'Pcs/Sachet', 'Sachets/Carton', 'Total Pcs/Carton', 'Ref Carton', 'Ref Sachet', 'Ref Palette', 'Ctns/Palette'];
+        rows = petProducts.map(p => [`"${p.reference}"`, `"${p.mouleMachine}"`, `"${p.designation}"`, `"${p.matiereBobine}"`, p.pcsSachet, p.sachetsCarton, p.totalPcsCarton, `"${p.refCarton}"`, `"${p.refSachet}"`, `"${p.refPalette}"`, p.cartonsPalette]);
+      }
+      const csv = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      closeShareModal();
+    }
+
+
+    // ====== AUTH ======
+    const USERS = {
+      admin:  { pass: 'admin123',  role: 'admin'  },
+      worker: { pass: 'worker123', role: 'worker' }
+    };
+    function currentRole() { return localStorage.getItem('user_role'); }
+    function isAdmin() { return currentRole() === 'admin'; }
+
+    function applyRole() {
+      const role = currentRole();
+      const login = document.getElementById('loginScreen');
+      const app = document.getElementById('appRoot');
+      if (role !== 'admin' && role !== 'worker') {
+        login.style.display = 'flex';
+        app.style.display = 'none';
+        document.body.classList.remove('role-worker');
+        return;
+      }
+      login.style.display = 'none';
+      app.style.display = '';
+      document.body.classList.toggle('role-worker', role === 'worker');
+      const b = document.getElementById('userBadge');
+      b.textContent = role === 'admin' ? '🛡️ Administrateur' : '🛠️ Ouvrier (lecture seule)';
+      b.className = 'user-badge' + (role === 'worker' ? ' worker' : '');
+      isEditMode = false; isDeleteMode = false; selectedIndices.clear();
+      updateButtons();
+      renderTable();
+    }
+    function togglePassword() {
+      const p = document.getElementById('password');
+      p.type = p.type === 'password' ? 'text' : 'password';
+    }
+    function fillCredentials(user, pass) {
+      document.getElementById('username').value = user;
+      document.getElementById('password').value = pass;
+      document.getElementById('loginError').style.display = 'none';
+    }
+    function handleLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('username').value.trim().toLowerCase();
+      const p = document.getElementById('password').value.trim();
+      const acc = USERS[u];
+      if (acc && acc.pass === p) {
+        localStorage.setItem('user_role', acc.role);
+        document.getElementById('password').value = '';
+        document.getElementById('loginError').style.display = 'none';
+        applyRole();
+      } else {
+        document.getElementById('loginError').style.display = 'block';
+      }
+    }
+    function logout() {
+      localStorage.removeItem('user_role');
+      applyRole();
+    }
+    // Workers can never modify data, even from the console
+    ['openAddModal','toggleEditMode','toggleDeleteMode','openEditModal','handleAddSubmit','handleEditSubmit'].forEach(n => {
+      const orig = window[n];
+      window[n] = function(...a) { if (!isAdmin()) return; return orig.apply(this, a); };
+    });
+    applyRole();
+
+  </script>
+</body>
+</html>
