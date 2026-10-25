@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BASE DE DONNÉES PRODUIT FINI & CONDITIONNEMENT</title>
+  <title>CONTRÔLE QUALITÉ CQ-FO-10 & BASE DE DONNÉES</title>
   <style>
     :root {
       --primary: #0f172a;
@@ -413,6 +413,15 @@
     .share-option { display: block; width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); text-align: left; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
     .share-option:hover { background: #f8fafc; border-color: var(--primary); color: var(--primary); }
 
+    @media (max-width: 768px) {
+      body { padding: 8px; }
+      .container { padding: 0; }
+      header h1 { font-size: 0.95rem !important; }
+      div[style*="width:380px"] { width: 100% !important; }
+      .top-actions-bar { padding: 8px; }
+      .search-box { max-width: none; }
+      #cqContainer { overflow-x: auto; }
+    }
     @media print {
       @page { size: landscape; margin: 10mm; }
       body { background: white; padding: 0; }
@@ -430,6 +439,10 @@
       <div style="display:flex; gap:6px; background:#f1f5f9; padding:4px; border-radius:10px; border:1px solid #cbd5e1; align-items:center;">
         <button id="navCQ" onclick="switchPage('cq')" class="act-btn" style="background:#0f172a; color:#fff; font-size:12px; padding:6px 12px; cursor:pointer;">📋 Fiche Contrôle Qualité</button>
         <button id="navDB" onclick="switchPage('db')" class="act-btn" style="background:#e2e8f0; color:#334155; font-size:12px; padding:6px 12px; cursor:pointer;">🗄️ Base de Données</button>
+        <button onclick="exportBackup()" class="act-btn" style="background:#e2e8f0; color:#334155; font-size:12px; padding:6px 12px;" title="Exporter toutes les données (JSON)">💾 Sauvegarde</button>
+        <button onclick="document.getElementById('backupFile').click()" class="act-btn" style="background:#e2e8f0; color:#334155; font-size:12px; padding:6px 12px;" title="Restaurer une sauvegarde">📥 Restaurer</button>
+        <button onclick="openExportModal()" class="act-btn" style="background:#059669; color:#fff; font-size:12px; padding:6px 12px;" title="Excel, Google Sheets, historique, sauvegarde auto">📤 Export &amp; Sync</button>
+        <input type="file" id="backupFile" accept=".json,application/json" style="display:none" onchange="importBackup(event)" />
       </div>
     </header>
 
@@ -442,7 +455,7 @@
 
     <div class="top-actions-bar no-print" id="topActionsBar">
       <div class="search-box">
-        <input type="text" id="searchInput" class="search-input" placeholder="" autofocus />
+        <input type="text" id="searchInput" class="search-input" placeholder="Rechercher..." />
         <div id="countBadge" class="count-badge">0 / 0</div>
       </div>
 
@@ -501,11 +514,51 @@
       <div class="modal-header"><span>Exporter & Partager</span><button class="modal-close" onclick="closeShareModal()">&times;</button></div>
       <div class="modal-body">
         <button class="share-option" onclick="copyForGoogleSheets()">📊 Copier pour Google Sheets / Excel (Ctrl + V)</button>
+        <button class="share-option" onclick="closeShareModal(); openExportModal()">📗 Excel .xlsx complet / Google Sheets / Sauvegarde auto…</button>
         <button class="share-option" onclick="downloadCSV()">💾 Télécharger Fichier Excel (.CSV)</button>
         <button class="share-option" onclick="shareWhatsApp()">📲 Partager sur WhatsApp</button>
         <button class="share-option" onclick="closeShareModal(); window.print();">🖨️ Imprimer la table actuelle</button>
       </div>
       <div class="modal-footer"><button class="modal-btn" onclick="closeShareModal()">Fermer</button></div>
+    </div>
+  </div>
+
+  <!-- Modal Export / Sync / Archive -->
+  <div class="modal-backdrop" id="exportModal">
+    <div class="modal-card" style="max-width:780px;">
+      <div class="modal-header" style="background:#0f172a;color:#fff;"><span>📤 Export, Google Sheets &amp; Sauvegarde</span><button class="modal-close" onclick="closeExportModal()">&times;</button></div>
+      <div class="modal-body">
+        <div id="exMsg" style="display:none;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:600;"></div>
+
+        <div style="font-weight:800;margin-bottom:6px;">1. Archiver la fiche CQ</div>
+        <button class="share-option" onclick="saveFiche()">💾 Enregistrer la fiche en cours dans l'historique</button>
+        <div id="exHist" style="max-height:190px;overflow-y:auto;margin-bottom:16px;"></div>
+
+        <div style="font-weight:800;margin-bottom:6px;">2. Excel (.xlsx)</div>
+        <button class="share-option" onclick="exportXlsx(false)">📗 Excel complet : Historique CQ + Fiche en cours + PET + Cartons + Sachets + Palettes</button>
+        <button class="share-option" onclick="exportXlsx(true)">📄 Excel : fiche en cours seulement</button>
+
+        <div style="font-weight:800;margin:16px 0 6px;">3. Google Sheets</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:8px;line-height:1.5;">
+          Une seule fois : ouvrez votre Google Sheet → <b>Extensions › Apps Script</b> → collez le code ci-dessous → <b>Déployer › Nouveau déploiement › Application Web</b> (Exécuter en tant que : <i>Moi</i> · Accès : <i>Tout le monde</i>) → copiez l'URL ici.
+        </div>
+        <pre id="gsCode" style="background:#0f172a;color:#e2e8f0;padding:10px;border-radius:8px;font-size:11px;max-height:120px;overflow:auto;margin-bottom:8px;white-space:pre-wrap;"></pre>
+        <button class="modal-btn" onclick="copyGsCode()" style="margin-bottom:8px;">📋 Copier le script</button>
+        <input id="gsUrl" type="text" placeholder="URL de l'application web (https://script.google.com/macros/s/.../exec)" class="search-input" style="margin-bottom:6px;" />
+        <input id="gsSecret" type="text" placeholder="Mot de passe (optionnel, doit être le même que SECRET dans le script)" class="search-input" style="margin-bottom:8px;" />
+        <label style="display:flex;gap:8px;align-items:center;font-size:12px;margin-bottom:8px;"><input id="gsAuto" type="checkbox" /> Envoyer automatiquement à chaque « Enregistrer la fiche »</label>
+        <button class="share-option" onclick="syncGoogleSheets()">☁️ Envoyer maintenant vers Google Sheets</button>
+
+        <div style="font-weight:800;margin:16px 0 6px;">4. Sauvegarde automatique (fichier sur le PC)</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:8px;">Chrome / Edge : choisissez un fichier (ex. dans Google Drive / OneDrive / clé USB). Il est mis à jour automatiquement à chaque modification.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+          <button class="modal-btn primary" onclick="pickBackupFile()">📁 Choisir le fichier</button>
+          <button class="modal-btn" onclick="reconnectBackup()">🔄 Reconnecter</button>
+          <button class="modal-btn" onclick="exportBackup()">💾 Sauvegarde JSON manuelle</button>
+        </div>
+        <div id="bkStatus" style="font-size:12px;color:#334155;font-weight:600;">Aucun fichier de sauvegarde auto choisi.</div>
+      </div>
+      <div class="modal-footer"><button class="modal-btn" onclick="closeExportModal()">Fermer</button></div>
     </div>
   </div>
 
@@ -1134,96 +1187,106 @@
       const container = document.getElementById('addModalFields');
       if (currentTab === 'pet') {
         container.innerHTML = `
-          <div class="form-group"><label>REF / PPAL *</label><input type="text" id="fPetRef" value="${item ? item.reference : ''}" required /></div>
-          <div class="form-group"><label>REF INSERT / MOULE (M05-I1...)</label><input type="text" id="fPetMoule" value="${item ? item.mouleMachine : 'M05-I1'}" /></div>
-          <div class="form-group"><label>MODÈLE (DÉSIGNATION) *</label><input type="text" id="fPetDesig" value="${item ? item.designation : ''}" required /></div>
-          <div class="form-group"><label>BOBINE (MATIÈRE PREMIÈRE)</label><input type="text" id="fPetBob" value="${item ? item.matiereBobine : ''}" /></div>
+          <div class="form-group"><label>REF / PPAL *</label><input type="text" id="fPetRef" value="${item ? esc(item.reference) : ''}" required /></div>
+          <div class="form-group"><label>REF INSERT / MOULE (M05-I1...)</label><input type="text" id="fPetMoule" value="${item ? esc(item.mouleMachine) : 'M05-I1'}" /></div>
+          <div class="form-group"><label>MODÈLE (DÉSIGNATION) *</label><input type="text" id="fPetDesig" value="${item ? esc(item.designation) : ''}" required /></div>
+          <div class="form-group"><label>BOBINE (MATIÈRE PREMIÈRE)</label><input type="text" id="fPetBob" value="${item ? esc(item.matiereBobine) : ''}" /></div>
           <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-            <div class="form-group"><label>NBR/PAQ</label><input type="number" id="fPetPcs" value="${item ? item.pcsSachet : 50}" /></div>
-            <div class="form-group"><label>PAQ/CRT</label><input type="number" id="fPetSachets" value="${item ? item.sachetsCarton : 20}" /></div>
-            <div class="form-group"><label>UNITÉ/CRT</label><input type="number" id="fPetTot" value="${item ? item.totalPcsCarton : 1000}" /></div>
+            <div class="form-group"><label>NBR/PAQ</label><input type="number" id="fPetPcs" value="${item ? esc(item.pcsSachet) : 50}" /></div>
+            <div class="form-group"><label>PAQ/CRT</label><input type="number" id="fPetSachets" value="${item ? esc(item.sachetsCarton) : 20}" /></div>
+            <div class="form-group"><label>UNITÉ/CRT</label><input type="number" id="fPetTot" value="${item ? esc(item.totalPcsCarton) : 1000}" /></div>
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-            <div class="form-group"><label>RÉF CARTON</label><input type="text" id="fPetCrt" value="${item ? item.refCarton : 'CRT03'}" /></div>
-            <div class="form-group"><label>RÉF SACHET</label><input type="text" id="fPetSch" value="${item ? item.refSachet : 'SCH78'}" /></div>
-            <div class="form-group"><label>RÉF PALETTE</label><input type="text" id="fPetPal" value="${item ? item.refPalette : 'PL-002'}" /></div>
+            <div class="form-group"><label>RÉF CARTON</label><input type="text" id="fPetCrt" value="${item ? esc(item.refCarton) : 'CRT03'}" /></div>
+            <div class="form-group"><label>RÉF SACHET</label><input type="text" id="fPetSch" value="${item ? esc(item.refSachet) : 'SCH78'}" /></div>
+            <div class="form-group"><label>RÉF PALETTE</label><input type="text" id="fPetPal" value="${item ? esc(item.refPalette) : 'PL-002'}" /></div>
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-            <div class="form-group"><label>DIMENSIONS PALETTE *</label><input type="text" id="fPetPalDim" value="${item ? item.paletteDimensions : '120*100'}" required /></div>
-            <div class="form-group"><label>CRT / PALETTE *</label><input type="number" id="fPetCtnPal" value="${item ? item.cartonsPalette : 64}" required /></div>
+            <div class="form-group"><label>DIMENSIONS PALETTE *</label><input type="text" id="fPetPalDim" value="${item ? esc(item.paletteDimensions) : '120*100'}" required /></div>
+            <div class="form-group"><label>CRT / PALETTE *</label><input type="number" id="fPetCtnPal" value="${item ? esc(item.cartonsPalette) : 64}" required /></div>
           </div>
         `;
       } else if (currentTab === 'cartons') {
         container.innerHTML = `
-          <div class="form-group"><label>RÉF CARTON *</label><input type="text" id="fCrtRef" value="${item ? item.ref : ''}" required /></div>
-          <div class="form-group"><label>DÉSIGNATION *</label><input type="text" id="fCrtDesig" value="${item ? item.designation : ''}" required /></div>
-          <div class="form-group"><label>DIMENSIONS (MM) *</label><input type="text" id="fCrtDim" value="${item ? item.dimensions : ''}" required /></div>
-          <div class="form-group"><label>POIDS (KG) *</label><input type="number" step="0.01" id="fCrtPoids" value="${item ? item.poids : 0.4}" required /></div>
+          <div class="form-group"><label>RÉF CARTON *</label><input type="text" id="fCrtRef" value="${item ? esc(item.ref) : ''}" required /></div>
+          <div class="form-group"><label>DÉSIGNATION *</label><input type="text" id="fCrtDesig" value="${item ? esc(item.designation) : ''}" required /></div>
+          <div class="form-group"><label>DIMENSIONS (MM) *</label><input type="text" id="fCrtDim" value="${item ? esc(item.dimensions) : ''}" required /></div>
+          <div class="form-group"><label>POIDS (KG) *</label><input type="number" step="0.01" id="fCrtPoids" value="${item ? esc(item.poids) : 0.4}" required /></div>
         `;
       } else if (currentTab === 'sachets') {
         container.innerHTML = `
-          <div class="form-group"><label>RÉFÉRENCE *</label><input type="text" id="fSchRef" value="${item ? item.ref : ''}" required /></div>
-          <div class="form-group"><label>DÉSIGNATION *</label><input type="text" id="fSchDesig" value="${item ? item.designation : ''}" required /></div>
-          <div class="form-group"><label>DIMENSIONS (MM) *</label><input type="text" id="fSchDim" value="${item ? item.dimensions : ''}" required /></div>
+          <div class="form-group"><label>RÉFÉRENCE *</label><input type="text" id="fSchRef" value="${item ? esc(item.ref) : ''}" required /></div>
+          <div class="form-group"><label>DÉSIGNATION *</label><input type="text" id="fSchDesig" value="${item ? esc(item.designation) : ''}" required /></div>
+          <div class="form-group"><label>DIMENSIONS (MM) *</label><input type="text" id="fSchDim" value="${item ? esc(item.dimensions) : ''}" required /></div>
         `;
       } else {
         container.innerHTML = `
-          <div class="form-group"><label>RÉF PALETTE *</label><input type="text" id="fPalRef" value="${item ? item.ref : ''}" required /></div>
-          <div class="form-group"><label>DÉSIGNATION</label><input type="text" id="fPalDesig" value="${item ? item.designation : ''}" /></div>
-          <div class="form-group"><label>DIMENSIONS (L * L) *</label><input type="text" id="fPalDim" value="${item ? item.dimensions : '120*100'}" required /></div>
-          <div class="form-group"><label>TYPE / USAGE</label><input type="text" id="fPalType" value="${item ? item.type : ''}" /></div>
+          <div class="form-group"><label>RÉF PALETTE *</label><input type="text" id="fPalRef" value="${item ? esc(item.ref) : ''}" required /></div>
+          <div class="form-group"><label>DÉSIGNATION</label><input type="text" id="fPalDesig" value="${item ? esc(item.designation) : ''}" /></div>
+          <div class="form-group"><label>DIMENSIONS (L * L) *</label><input type="text" id="fPalDim" value="${item ? esc(item.dimensions) : '120*100'}" required /></div>
+          <div class="form-group"><label>TYPE / USAGE</label><input type="text" id="fPalType" value="${item ? esc(item.type) : ''}" /></div>
         `;
       }
     }
 
     function handleFormSubmit(e) {
       e.preventDefault();
+      const _idMap = { pet: ['fPetRef', 'reference', petProducts], cartons: ['fCrtRef', 'ref', cartons], sachets: ['fSchRef', 'ref', sachets], palettes: ['fPalRef', 'ref', palettes] };
+      const [_fid, _key, _list] = _idMap[currentTab];
+      const _v = clean(document.getElementById(_fid).value).toUpperCase();
+      if (_list.some((x, i) => i !== currentEditIdx && String(x[_key]).toUpperCase() === _v)) {
+        alert('Cette référence existe déjà : ' + _v);
+        return;
+      }
       if (currentTab === 'pet') {
-        const ref = document.getElementById('fPetRef').value.trim().toUpperCase();
-        const moule = document.getElementById('fPetMoule').value.trim().toUpperCase();
-        const desig = document.getElementById('fPetDesig').value.trim().toUpperCase();
-        const bob = document.getElementById('fPetBob').value.trim().toUpperCase();
+        const ref = clean(document.getElementById('fPetRef').value).toUpperCase();
+        const moule = clean(document.getElementById('fPetMoule').value).toUpperCase();
+        const desig = clean(document.getElementById('fPetDesig').value).toUpperCase();
+        const bob = clean(document.getElementById('fPetBob').value).toUpperCase();
         const pcs = parseInt(document.getElementById('fPetPcs').value) || 1;
         const sach = parseInt(document.getElementById('fPetSachets').value) || 1;
         const tot = parseInt(document.getElementById('fPetTot').value) || (pcs * sach);
-        const crt = document.getElementById('fPetCrt').value.trim().toUpperCase();
-        const sch = document.getElementById('fPetSch').value.trim().toUpperCase();
-        const pal = document.getElementById('fPetPal').value.trim().toUpperCase();
-        const palDim = document.getElementById('fPetPalDim').value.trim();
+        const crt = clean(document.getElementById('fPetCrt').value).toUpperCase();
+        const sch = clean(document.getElementById('fPetSch').value).toUpperCase();
+        const pal = clean(document.getElementById('fPetPal').value).toUpperCase();
+        const palDim = clean(document.getElementById('fPetPalDim').value);
         const col = parseInt(document.getElementById('fPetCtnPal').value) || 1;
 
         const obj = {
           reference: ref, mouleMachine: moule, designation: desig, matiereBobine: bob,
           pcsSachet: pcs, sachetsCarton: sach, totalPcsCarton: tot,
           refCarton: crt, refSachet: sch, refPalette: pal, paletteDimensions: palDim,
-          cartonsPalette: col, nbrEmpreintes: 6, cadenceHz: 55, mpm01: 55, mpm02: 55, pourcentageSq: 73
+          cartonsPalette: col
         };
+        const keep = currentEditIdx !== null ? petProducts[currentEditIdx] : {};
+        const dflt = { nbrEmpreintes: 6, cadenceHz: 55, mpm01: 55, mpm02: 55, pourcentageSq: 73 };
+        for (const k in dflt) obj[k] = (keep[k] !== undefined) ? keep[k] : dflt[k];
 
         if (currentEditIdx !== null) petProducts[currentEditIdx] = obj;
         else petProducts.unshift(obj);
       } else if (currentTab === 'cartons') {
         const obj = {
-          ref: document.getElementById('fCrtRef').value.trim().toUpperCase(),
-          designation: document.getElementById('fCrtDesig').value.trim().toUpperCase(),
-          dimensions: document.getElementById('fCrtDim').value.trim(),
+          ref: clean(document.getElementById('fCrtRef').value).toUpperCase(),
+          designation: clean(document.getElementById('fCrtDesig').value).toUpperCase(),
+          dimensions: clean(document.getElementById('fCrtDim').value),
           poids: parseFloat(document.getElementById('fCrtPoids').value) || 0
         };
         if (currentEditIdx !== null) cartons[currentEditIdx] = obj;
         else cartons.unshift(obj);
       } else if (currentTab === 'sachets') {
         const obj = {
-          ref: document.getElementById('fSchRef').value.trim().toUpperCase(),
-          designation: document.getElementById('fSchDesig').value.trim().toUpperCase(),
-          dimensions: document.getElementById('fSchDim').value.trim()
+          ref: clean(document.getElementById('fSchRef').value).toUpperCase(),
+          designation: clean(document.getElementById('fSchDesig').value).toUpperCase(),
+          dimensions: clean(document.getElementById('fSchDim').value)
         };
         if (currentEditIdx !== null) sachets[currentEditIdx] = obj;
         else sachets.unshift(obj);
       } else {
         const obj = {
-          ref: document.getElementById('fPalRef').value.trim().toUpperCase(),
-          designation: document.getElementById('fPalDesig').value.trim().toUpperCase() || 'PALETTE',
-          dimensions: document.getElementById('fPalDim').value.trim(),
-          type: document.getElementById('fPalType').value.trim()
+          ref: clean(document.getElementById('fPalRef').value).toUpperCase(),
+          designation: clean(document.getElementById('fPalDesig').value).toUpperCase() || 'PALETTE',
+          dimensions: clean(document.getElementById('fPalDim').value),
+          type: clean(document.getElementById('fPalType').value)
         };
         if (currentEditIdx !== null) palettes[currentEditIdx] = obj;
         else palettes.unshift(obj);
@@ -1336,6 +1399,47 @@
       ]
     };
 
+    const CQ_KEY = 'cq_state_v1';
+    try {
+      const saved = JSON.parse(localStorage.getItem(CQ_KEY));
+      if (saved && Array.isArray(saved.inspections)) Object.assign(cqState, saved);
+    } catch (e) {}
+    function saveCQ() { try { localStorage.setItem(CQ_KEY, JSON.stringify(cqState)); } catch (e) {} }
+    function esc(s) {
+      return String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function clean(v) { return String(v).replace(/[<>"]/g, '').trim(); }
+
+    function exportBackup() {
+      const data = { v: 1, cartons, sachets, palettes, petProducts, cqState };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'qc-sauvegarde-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+    function importBackup(ev) {
+      const f = ev.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try {
+          const d = JSON.parse(r.result);
+          if (!Array.isArray(d.petProducts) || !Array.isArray(d.cartons)) throw new Error('bad');
+          if (!confirm('Remplacer toutes les données actuelles par cette sauvegarde ?')) return;
+          cartons = d.cartons;
+          sachets = Array.isArray(d.sachets) ? d.sachets : sachets;
+          palettes = Array.isArray(d.palettes) ? d.palettes : palettes;
+          petProducts = d.petProducts;
+          if (d.cqState && Array.isArray(d.cqState.inspections)) Object.assign(cqState, d.cqState);
+          saveAll(); saveCQ(); switchPage(activePage);
+        } catch (e) { alert('Fichier de sauvegarde invalide.'); }
+        ev.target.value = '';
+      };
+      r.readAsText(f);
+    }
+
     function extractGrammage(designation) {
       if (!designation) return 0;
       const match = designation.trim().match(/(\d+(?:[.,]\d+)?)\s*(?:GR|G)\s*$/i) ||
@@ -1409,8 +1513,10 @@
 
       const calc = calculateQualityParameters(grammage, p ? p.totalPcsCarton : 1000, poidsVide, p ? p.designation : '');
 
+      const pOut = v => { v = Number(v) || 0; return v > 0 && grammage > 0 && (v < calc.minG || v > calc.maxG); };
       let html = `
         <div style="background:#fff; border-radius:16px; border:2px solid #cbd5e1; box-shadow:0 1px 3px rgba(0,0,0,0.05); overflow:hidden;">
+          ${(crt && grammage > 0) ? '' : '<div style="background:#fef2f2; border-bottom:2px solid #fca5a5; color:#991b1b; padding:8px 16px; font-weight:900; font-size:13px;">⚠️ ' + (!crt ? 'Carton ' + esc(p ? p.refCarton : '') + ' introuvable : poids à vide = 0. ' : '') + (grammage > 0 ? '' : 'Grammage non détecté dans la désignation. ') + 'Vérifiez la base avant le contrôle.</div>'}
           <!-- En-tête officiel CQ-FO-10 -->
           <div style="background:#0f172a; color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; border-bottom:2px solid #1e293b;">
             <div>
@@ -1421,6 +1527,8 @@
             </div>
             <div class="no-print" style="display:flex; gap:8px;">
               <button class="act-btn" style="background:#334155; color:#fde68a;" onclick="generateCQShift()">&plus; Générer Shift (8h)</button>
+              <button class="act-btn" style="background:#2563eb;" onclick="ficheBtn()">💾 Enregistrer la fiche</button>
+              <button class="act-btn" style="background:#15803d;" onclick="exportXlsx(true)">📗 Excel</button>
               <button class="act-btn" style="background:#059669;" onclick="window.print()">&star; Imprimer CQ-FO-10</button>
             </div>
           </div>
@@ -1429,12 +1537,12 @@
           <div style="background:#f1f5f9; padding:16px; border-bottom:2px solid #cbd5e1; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
             <div style="background:#fff; padding:10px 12px; border-radius:10px; border:2px solid #94a3b8;">
               <label style="display:block; font-size:12px; font-weight:900; color:#0f172a; margin-bottom:5px; text-transform:uppercase;">N&deg; Rapport / Page</label>
-              <input type="text" value="${cqState.rapportNum}" onchange="cqState.rapportNum=this.value" style="width:100%; font-family:monospace; font-weight:900; font-size:15px; color:#0f172a; border:2px solid #cbd5e1; border-radius:6px; padding:6px 10px; outline:none;" />
+              <input type="text" value="${esc(cqState.rapportNum)}" onchange="cqState.rapportNum=this.value" style="width:100%; font-family:monospace; font-weight:900; font-size:15px; color:#0f172a; border:2px solid #cbd5e1; border-radius:6px; padding:6px 10px; outline:none;" />
             </div>
 
             <div style="background:#fff; padding:10px 12px; border-radius:10px; border:2px solid #94a3b8;">
               <label style="display:block; font-size:12px; font-weight:900; color:#0f172a; margin-bottom:5px; text-transform:uppercase;">N&deg; Machine</label>
-              <input type="text" value="${cqState.machineNum}" onchange="cqState.machineNum=this.value" style="width:100%; font-weight:900; font-size:15px; color:#0f172a; border:2px solid #cbd5e1; border-radius:6px; padding:6px 10px; outline:none;" />
+              <input type="text" value="${esc(cqState.machineNum)}" onchange="cqState.machineNum=this.value" style="width:100%; font-weight:900; font-size:15px; color:#0f172a; border:2px solid #cbd5e1; border-radius:6px; padding:6px 10px; outline:none;" />
             </div>
 
             <div style="background:#fff; padding:10px 12px; border-radius:10px; border:2px solid #94a3b8;">
@@ -1453,7 +1561,7 @@
 
             <div style="background:#fff; padding:10px 12px; border-radius:10px; border:2px solid #94a3b8;">
               <label style="display:block; font-size:12px; font-weight:900; color:#0f172a; margin-bottom:5px; text-transform:uppercase;">Agent Qualit&eacute;</label>
-              <input type="text" value="${cqState.agentQualite}" placeholder="Nom du contrôleur..." onchange="cqState.agentQualite=this.value" style="width:100%; font-weight:900; font-size:15px; color:#0f172a; border:2px solid #cbd5e1; border-radius:6px; padding:6px 10px; outline:none;" />
+              <input type="text" value="${esc(cqState.agentQualite)}" placeholder="Nom du contrôleur..." onchange="cqState.agentQualite=this.value" style="width:100%; font-weight:900; font-size:15px; color:#0f172a; border:2px solid #cbd5e1; border-radius:6px; padding:6px 10px; outline:none;" />
             </div>
           </div>
 
@@ -1465,7 +1573,7 @@
               </label>
               <select onchange="onSelectCQProduct(this.value)" style="width:100%; padding:9px 12px; font-size:14px; font-family:monospace; font-weight:900; color:#0f172a; background:#f8fafc; border:2px solid #475569; border-radius:8px; outline:none; cursor:pointer;">
                 ${petProducts.map(item => `
-                  <option value="${item.reference}" ${item.reference === cqState.selectedRef ? 'selected' : ''}>
+                  <option value="${esc(item.reference)}" ${item.reference === cqState.selectedRef ? 'selected' : ''}>
                     ${item.reference} [${item.mouleMachine}]
                   </option>
                 `).join('')}
@@ -1688,10 +1796,10 @@
                     return `
                       <tr style="background:#fff;">
                         <td style="padding:6px; border:1px solid #cbd5e1; font-family:monospace; font-weight:900;">
-                          <input type="time" value="${row.heure}" onchange="updateCQRowField(${idx}, 'heure', this.value)" style="border:none; background:transparent; font-weight:900; font-size:14px; width:75px; text-align:center;" />
+                          <input type="time" value="${esc(row.heure)}" onchange="updateCQRowField(${idx}, 'heure', this.value)" style="border:none; background:transparent; font-weight:900; font-size:14px; width:75px; text-align:center;" />
                         </td>
                         <td style="padding:6px; border:1px solid #cbd5e1;">
-                          <input type="text" value="${row.numLotBobine}" placeholder="Lot..." onchange="updateCQRowField(${idx}, 'numLotBobine', this.value)" style="width:90px; padding:5px; border:2px solid #94a3b8; border-radius:6px; font-family:monospace; font-weight:900; font-size:13px; text-align:center;" />
+                          <input type="text" value="${esc(row.numLotBobine)}" placeholder="Lot..." onchange="updateCQRowField(${idx}, 'numLotBobine', this.value)" style="width:90px; padding:5px; border:2px solid #94a3b8; border-radius:6px; font-family:monospace; font-weight:900; font-size:13px; text-align:center;" />
                         </td>
                         <td style="padding:6px; border:1px solid #cbd5e1;">
                           <input type="number" value="${row.mic1 || ''}" onchange="updateCQRowField(${idx}, 'mic1', this.value)" style="width:52px; padding:4px; border:2px solid #94a3b8; border-radius:6px; font-family:monospace; font-weight:900; font-size:13px; text-align:center;" />
@@ -1712,13 +1820,13 @@
                           <input type="number" value="${row.mic6 || ''}" onchange="updateCQRowField(${idx}, 'mic6', this.value)" style="width:52px; padding:4px; border:2px solid #94a3b8; border-radius:6px; font-family:monospace; font-weight:900; font-size:13px; text-align:center;" />
                         </td>
                         <td style="padding:6px; border:1px solid #cbd5e1; background:#fffbeb;">
-                          <input type="number" step="0.01" value="${row.p1 || ''}" onchange="updateCQRowField(${idx}, 'p1', this.value)" style="width:65px; padding:4px; border:2px solid #f59e0b; border-radius:6px; font-family:monospace; font-weight:900; font-size:14px; text-align:center;" />
+                          <input type="number" step="0.01" value="${row.p1 || ''}" onchange="updateCQRowField(${idx}, 'p1', this.value)" style="width:65px; padding:4px; ${pOut(row.p1) ? 'background:#fee2e2; border:2px solid #dc2626;' : 'border:2px solid #f59e0b;'} border-radius:6px; font-family:monospace; font-weight:900; font-size:14px; text-align:center;" />
                         </td>
                         <td style="padding:6px; border:1px solid #cbd5e1; background:#fffbeb;">
-                          <input type="number" step="0.01" value="${row.p2 || ''}" onchange="updateCQRowField(${idx}, 'p2', this.value)" style="width:65px; padding:4px; border:2px solid #f59e0b; border-radius:6px; font-family:monospace; font-weight:900; font-size:14px; text-align:center;" />
+                          <input type="number" step="0.01" value="${row.p2 || ''}" onchange="updateCQRowField(${idx}, 'p2', this.value)" style="width:65px; padding:4px; ${pOut(row.p2) ? 'background:#fee2e2; border:2px solid #dc2626;' : 'border:2px solid #f59e0b;'} border-radius:6px; font-family:monospace; font-weight:900; font-size:14px; text-align:center;" />
                         </td>
                         <td style="padding:6px; border:1px solid #cbd5e1; background:#fffbeb;">
-                          <input type="number" step="0.01" value="${row.p3 || ''}" onchange="updateCQRowField(${idx}, 'p3', this.value)" style="width:65px; padding:4px; border:2px solid #f59e0b; border-radius:6px; font-family:monospace; font-weight:900; font-size:14px; text-align:center;" />
+                          <input type="number" step="0.01" value="${row.p3 || ''}" onchange="updateCQRowField(${idx}, 'p3', this.value)" style="width:65px; padding:4px; ${pOut(row.p3) ? 'background:#fee2e2; border:2px solid #dc2626;' : 'border:2px solid #f59e0b;'} border-radius:6px; font-family:monospace; font-weight:900; font-size:14px; text-align:center;" />
                         </td>
                         <td style="padding:6px; border:1px solid #cbd5e1; background:#fef3c7; font-family:monospace; font-weight:900;">
                           ${avg > 0 ? `
@@ -1768,6 +1876,7 @@
           </div>
       `;
 
+      saveCQ();
       container.innerHTML = html;
     }
 
@@ -1948,6 +2057,8 @@
         row.decision = 'CONFORME';
       } else if (count === 3 && (avg < minG || avg > maxG)) {
         row.decision = 'NON CONFORME';
+      } else if (count < 3 && row.decision !== 'EN ATTENTE') {
+        row.decision = '';
       }
     }
 
@@ -2018,6 +2129,7 @@
     }
 
     function generateCQShift() {
+      if (cqState.inspections.some(r => r.p1 || r.p2 || r.p3) && !confirm('Remplacer les mesures actuelles par un nouveau shift vide ?')) return;
       const times = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'];
       cqState.inspections = times.map((t, idx) => ({
         id: String(Date.now() + idx),
@@ -2046,7 +2158,7 @@
     function updateCQRowField(idx, field, val) {
       if (cqState.inspections[idx]) {
         cqState.inspections[idx][field] = val;
-        recalculateRowDecision(idx);
+        if (field === 'p1' || field === 'p2' || field === 'p3') recalculateRowDecision(idx);
         renderControleQualite();
       }
     }
@@ -2064,6 +2176,223 @@
       URL.revokeObjectURL(url);
     }
 
+    // ==========================================
+    // EXPORT EXCEL / GOOGLE SHEETS / ARCHIVE / SAUVEGARDE AUTO
+    // ==========================================
+    //XLSX-BEGIN
+    const _enc = new TextEncoder();
+    const _crcT = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+    function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = _crcT[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+    function zipStore(files) {
+      const parts = [], cen = []; let off = 0;
+      const u16 = v => [v & 255, (v >>> 8) & 255], u32 = v => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
+      files.forEach(f => {
+        const name = _enc.encode(f.name), data = _enc.encode(f.text), crc = crc32(data);
+        const lh = new Uint8Array([0x50,0x4b,3,4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(name.length), ...u16(0)]);
+        parts.push(lh, name, data);
+        cen.push(new Uint8Array([0x50,0x4b,1,2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(off)]), name);
+        off += lh.length + name.length + data.length;
+      });
+      let cenSize = 0; cen.forEach(c => cenSize += c.length);
+      const end = new Uint8Array([0x50,0x4b,5,6, ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(cenSize), ...u32(off), ...u16(0)]);
+      return new Blob([...parts, ...cen, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    }
+    function xEsc(s) { return String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function xCol(i) { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
+    function xSheet(headers, rows) {
+      const all = [headers, ...rows];
+      const widths = headers.map((_, c) => Math.min(60, Math.max(8, ...all.map(r => String(r[c] === undefined || r[c] === null ? '' : r[c]).length)) + 2));
+      const cell = (v, r, c, st) => {
+        const ref = xCol(c) + (r + 1);
+        if (v === '' || v === null || v === undefined) return st ? `<c r="${ref}" s="${st}"/>` : '';
+        if (typeof v === 'number' && isFinite(v)) return `<c r="${ref}"${st ? ` s="${st}"` : ''}><v>${v}</v></c>`;
+        return `<c r="${ref}"${st ? ` s="${st}"` : ''} t="inlineStr"><is><t xml:space="preserve">${xEsc(v)}</t></is></c>`;
+      };
+      const rowsXml = all.map((r, ri) => `<row r="${ri + 1}">${headers.map((_, ci) => cell(r[ci], ri, ci, ri === 0 ? 1 : 0)).join('')}</row>`).join('');
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${rowsXml}</sheetData><autoFilter ref="A1:${xCol(headers.length - 1)}${all.length}"/></worksheet>`;
+    }
+    function buildXlsx(sheets) {
+      const names = Object.keys(sheets);
+      const files = [
+        { name: '[Content_Types].xml', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${names.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>` },
+        { name: '_rels/.rels', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
+        { name: 'xl/workbook.xml', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${names.map((n, i) => `<sheet name="${xEsc(n.replace(/[\\\/\?\*\[\]:]/g, ' ').slice(0, 31))}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets></workbook>` },
+        { name: 'xl/_rels/workbook.xml.rels', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${names.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${names.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` },
+        { name: 'xl/styles.xml', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE2E8F0"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>` },
+        ...names.map((n, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, text: xSheet(sheets[n].headers, sheets[n].rows) }))
+      ];
+      return zipStore(files);
+    }
+    //XLSX-END
+
+    const HIST_KEY = 'cq_history_v1', GS_URL_KEY = 'cq_gs_url', GS_SEC_KEY = 'cq_gs_secret', GS_AUTO_KEY = 'cq_gs_auto';
+    const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
+    const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+    function loadHist() { try { return JSON.parse(lsGet(HIST_KEY, '[]')) || []; } catch (e) { return []; } }
+    function storeHist(h) { lsSet(HIST_KEY, JSON.stringify(h)); scheduleBackup(); }
+    function fKey(s) { return [s.dateJour, s.machineNum, s.groupe, s.rapportNum].join('|'); }
+    function avgOf(a) { const v = a.map(Number).filter(x => x > 0); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : ''; }
+    function rnd(v, n) { return v === '' ? '' : Math.round(v * Math.pow(10, n)) / Math.pow(10, n); }
+    const num = v => (v === '' || v === null || v === undefined || isNaN(Number(v))) ? '' : Number(v);
+
+    const CQ_HEADERS = ['Date', 'N° Rapport', 'Machine', 'Groupe', 'Agent Qualité', 'Référence', 'Désignation', 'Grammage cible (g)', 'Tolérance %', 'Min (g)', 'Max (g)', 'Heure', 'Lot bobine', 'Mic 1', 'Mic 2', 'Mic 3', 'Mic 4', 'Mic 5', 'Mic 6', 'Mic moyen', 'Poids 1', 'Poids 2', 'Poids 3', 'Poids moyen', 'Défauts', 'Décision'];
+    function cqRows(s) {
+      const p = petProducts.find(x => x.reference === s.selectedRef) || {};
+      const g = extractGrammage(p.designation || ''), tol = getTolerancePercent(g, p.designation || '');
+      const d = g * tol / 100;
+      return (s.inspections || []).map(r => [
+        s.dateJour, s.rapportNum, s.machineNum, s.groupe, s.agentQualite || '', s.selectedRef, p.designation || '',
+        g || '', tol || '', g ? rnd(g - d, 3) : '', g ? rnd(g + d, 3) : '',
+        r.heure, r.numLotBobine || '', num(r.mic1), num(r.mic2), num(r.mic3), num(r.mic4), num(r.mic5), num(r.mic6),
+        rnd(avgOf([r.mic1, r.mic2, r.mic3, r.mic4, r.mic5, r.mic6]), 1),
+        num(r.p1), num(r.p2), num(r.p3), rnd(avgOf([r.p1, r.p2, r.p3]), 3),
+        (r.defauts || []).join(', '), r.decision || ''
+      ]);
+    }
+    function buildAllSheets() {
+      const hist = loadHist();
+      const histRows = []; hist.forEach(h => histRows.push(...cqRows(h.state)));
+      const tbl = (list, cols) => ({ headers: cols.map(c => c[1]), rows: list.map(it => cols.map(c => it[c[0]] === undefined ? '' : it[c[0]])) });
+      return {
+        'Historique CQ': { headers: CQ_HEADERS, rows: histRows },
+        'Fiche en cours': { headers: CQ_HEADERS, rows: cqRows(cqState) },
+        'Produits PET': tbl(petProducts, [['reference','REF/PPAL'],['mouleMachine','REF INSERT'],['designation','MODEL'],['matiereBobine','BOBINE'],['pcsSachet','NBR/PAQ'],['sachetsCarton','PAQ/CRT'],['totalPcsCarton','UNITE/CRT'],['refCarton','CARTON'],['refSachet','SACHET'],['refPalette','PALETTE'],['paletteDimensions','DIM PALETTE'],['cartonsPalette','CRT/PAL'],['nbrEmpreintes','EMPREINTES'],['cadenceHz','CADENCE Hz'],['mpm01','MPM01'],['mpm02','MPM02'],['pourcentageSq','% SQ']]),
+        'Cartons': tbl(cartons, [['ref','Ref'],['designation','Designation'],['dimensions','Dimensions (mm)'],['poids','Poids (kg)']]),
+        'Sachets': tbl(sachets, [['ref','Reference'],['designation','Designation'],['dimensions','Dimensions (mm)']]),
+        'Palettes': tbl(palettes, [['ref','Ref'],['designation','Designation'],['dimensions','Dimensions'],['type','Type']])
+      };
+    }
+    function dlBlob(blob, name) {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    }
+    function exportXlsx(onlyCurrent) {
+      const all = buildAllSheets();
+      const sheets = onlyCurrent ? { 'Fiche en cours': all['Fiche en cours'] } : all;
+      const nm = onlyCurrent ? `CQ-FO-10_${cqState.dateJour}_${String(cqState.machineNum).replace(/\s+/g, '')}_G${cqState.groupe}.xlsx` : `QC_base_complete_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      dlBlob(buildXlsx(sheets), nm);
+      exMsg('✅ Fichier Excel téléchargé : ' + nm);
+    }
+
+    // ---- Archive (historique des fiches) ----
+    function saveFiche(silent) {
+      if (typeof saveCQ === 'function') saveCQ();
+      const h = loadHist(), k = fKey(cqState);
+      const entry = { key: k, savedAt: new Date().toISOString(), state: JSON.parse(JSON.stringify(cqState)) };
+      const i = h.findIndex(x => x.key === k);
+      if (i >= 0) h[i] = entry; else h.push(entry);
+      storeHist(h);
+      if (lsGet(GS_AUTO_KEY, '0') === '1' && lsGet(GS_URL_KEY, '')) syncGoogleSheets(true);
+      if (!silent) { exMsg(`✅ Fiche enregistrée dans l'historique (${h.length} fiche(s)).`); renderHistList(); }
+      return h.length;
+    }
+    function ficheBtn() { const n = saveFiche(true); alert(`Fiche enregistrée ✔ (${n} fiche(s) dans l'historique)`); }
+    function openFiche(i) {
+      const h = loadHist()[i]; if (!h) return;
+      if (!confirm('Charger cette fiche à la place de la fiche en cours ? (pensez à enregistrer la fiche actuelle avant)')) return;
+      Object.assign(cqState, JSON.parse(JSON.stringify(h.state)));
+      saveCQ(); closeExportModal(); switchPage('cq');
+    }
+    function delFiche(i) {
+      const h = loadHist(); if (!h[i] || !confirm('Supprimer cette fiche de l\'historique ?')) return;
+      h.splice(i, 1); storeHist(h); renderHistList();
+    }
+    function renderHistList() {
+      const h = loadHist(), box = document.getElementById('exHist'); if (!box) return;
+      if (!h.length) { box.innerHTML = '<div style="color:#64748b;font-size:12px;">Aucune fiche archivée. Cliquez sur « Enregistrer la fiche en cours ».</div>'; return; }
+      box.innerHTML = h.map((x, i) => ({ x, i })).sort((a, b) => b.x.savedAt.localeCompare(a.x.savedAt)).map(({ x, i }) => {
+        const s = x.state, nc = (s.inspections || []).filter(r => r.decision === 'NON CONFORME').length;
+        return `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;background:#f8fafc;font-size:12px;">
+          <div><b>${esc(s.dateJour)}</b> · ${esc(s.machineNum)} · Groupe ${esc(s.groupe)} · Rapport ${esc(s.rapportNum)}<br><span style="color:#64748b;">${esc(s.selectedRef)} · ${(s.inspections || []).length} contrôles · ${nc} NC · ${esc(s.agentQualite || '—')}</span></div>
+          <div style="display:flex;gap:5px;"><button class="modal-btn" onclick="openFiche(${i})">Ouvrir</button><button class="modal-btn" style="color:#b91c1c;" onclick="delFiche(${i})">🗑️</button></div></div>`;
+      }).join('');
+    }
+
+    // ---- Google Sheets (Apps Script) ----
+    const GS_CODE = `// Collez ce code dans Extensions > Apps Script de votre Google Sheet
+const SECRET = '';   // optionnel : même mot de passe que dans l'application
+
+function doPost(e) {
+  const d = JSON.parse(e.postData.contents);
+  if (SECRET && d.secret !== SECRET) return ContentService.createTextOutput('DENIED');
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  Object.keys(d.sheets).forEach(function (name) {
+    const s = d.sheets[name];
+    const sh = ss.getSheetByName(name) || ss.insertSheet(name);
+    sh.clearContents();
+    const v = [s.headers].concat(s.rows);
+    sh.getRange(1, 1, v.length, s.headers.length).setValues(v);
+    sh.getRange(1, 1, 1, s.headers.length).setFontWeight('bold').setBackground('#e2e8f0');
+    sh.setFrozenRows(1);
+  });
+  return ContentService.createTextOutput('OK');
+}`;
+    function copyGsCode() { navigator.clipboard.writeText(GS_CODE).then(() => exMsg('✅ Script copié. Collez-le dans Apps Script.'), () => exMsg('⚠️ Copie impossible : sélectionnez le code manuellement.')); }
+    function gsSaveCfg() {
+      lsSet(GS_URL_KEY, document.getElementById('gsUrl').value.trim());
+      lsSet(GS_SEC_KEY, document.getElementById('gsSecret').value);
+      lsSet(GS_AUTO_KEY, document.getElementById('gsAuto').checked ? '1' : '0');
+    }
+    async function syncGoogleSheets(silent) {
+      if (document.getElementById('gsUrl')) gsSaveCfg();
+      const url = lsGet(GS_URL_KEY, '');
+      if (!url) { exMsg('⚠️ Collez d\'abord l\'URL de l\'application web Apps Script.'); return; }
+      try {
+        await fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ secret: lsGet(GS_SEC_KEY, ''), sheets: buildAllSheets() }) });
+        if (!silent) exMsg('✅ Données envoyées vers Google Sheets. Vérifiez votre feuille (quelques secondes).');
+      } catch (e) { exMsg('❌ Envoi impossible (internet ? URL correcte ?).'); }
+    }
+
+    // ---- Sauvegarde automatique dans un fichier (Chrome / Edge) ----
+    let bkHandle = null, bkTimer = null;
+    const idb = () => new Promise((res, rej) => { const r = indexedDB.open('qc_handles', 1); r.onupgradeneeded = () => r.result.createObjectStore('h'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+    async function idbGet(k) { const db = await idb(); return new Promise(res => { const q = db.transaction('h').objectStore('h').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); }
+    async function idbSet(k, v) { const db = await idb(); return new Promise(res => { const t = db.transaction('h', 'readwrite'); t.objectStore('h').put(v, k); t.oncomplete = () => res(); t.onerror = () => res(); }); }
+    function backupPayload() { return JSON.stringify({ v: 2, savedAt: new Date().toISOString(), cartons, sachets, palettes, petProducts, cqState, history: loadHist() }, null, 2); }
+    async function writeBackup() {
+      if (!bkHandle) return false;
+      try {
+        if ((await bkHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') { bkStatus('⚠️ Autorisation à renouveler : cliquez « Reconnecter ».'); return false; }
+        const w = await bkHandle.createWritable(); await w.write(backupPayload()); await w.close();
+        bkStatus('✅ Dernière sauvegarde auto : ' + new Date().toLocaleTimeString() + ' → ' + bkHandle.name); return true;
+      } catch (e) { bkStatus('❌ Écriture impossible : ' + e.message); return false; }
+    }
+    function scheduleBackup() { if (!bkHandle) return; clearTimeout(bkTimer); bkTimer = setTimeout(writeBackup, 1500); }
+    async function pickBackupFile() {
+      if (!window.showSaveFilePicker) { bkStatus('⚠️ Navigateur non compatible (utilisez Chrome ou Edge sur PC).'); return; }
+      try {
+        bkHandle = await showSaveFilePicker({ suggestedName: 'qc-sauvegarde-auto.json', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+        await idbSet('backup', bkHandle); await writeBackup();
+      } catch (e) { if (e.name !== 'AbortError') bkStatus('❌ ' + e.message); }
+    }
+    async function reconnectBackup() {
+      if (!bkHandle) { bkStatus('Aucun fichier choisi.'); return; }
+      try { await bkHandle.requestPermission({ mode: 'readwrite' }); await writeBackup(); } catch (e) { bkStatus('❌ ' + e.message); }
+    }
+    function bkStatus(t) { const e = document.getElementById('bkStatus'); if (e) e.textContent = t; }
+    async function initBackup() {
+      try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+      try { bkHandle = (await idbGet('backup')) || null; if (bkHandle) bkStatus('📁 Fichier lié : ' + bkHandle.name + ' — cliquez « Reconnecter » si nécessaire.'); } catch (e) {}
+    }
+    const _saveAll0 = saveAll; saveAll = function () { _saveAll0(); scheduleBackup(); };
+    const _saveCQ0 = saveCQ; saveCQ = function () { _saveCQ0(); scheduleBackup(); };
+
+    // ---- Modal ----
+    function exMsg(t) { const e = document.getElementById('exMsg'); if (e) { e.textContent = t; e.style.display = 'block'; } }
+    function openExportModal() {
+      document.getElementById('gsUrl').value = lsGet(GS_URL_KEY, '');
+      document.getElementById('gsSecret').value = lsGet(GS_SEC_KEY, '');
+      document.getElementById('gsAuto').checked = lsGet(GS_AUTO_KEY, '0') === '1';
+      document.getElementById('gsCode').textContent = GS_CODE;
+      document.getElementById('exMsg').style.display = 'none';
+      renderHistList();
+      document.getElementById('exportModal').classList.add('open');
+    }
+    function closeExportModal() { gsSaveCfg(); document.getElementById('exportModal').classList.remove('open'); }
+    initBackup();
+
+    document.addEventListener('change', saveCQ);
     switchPage('cq');
   </script>
 </body>
