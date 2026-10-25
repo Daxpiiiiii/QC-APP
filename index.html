@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CONTRÔLE QUALITÉ CQ-FO-10 & BASE DE DONNÉES</title>
+  <title>CONTRÔLE QUALITÉ & BASE DE DONNÉES</title>
   <style>
     :root {
       --primary: #0f172a;
@@ -95,6 +95,12 @@
       color: #ffffff;
       border-color: #047857;
       box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+    }
+    .tab-btn.active-bobine {
+      background: #7c3aed;
+      color: #ffffff;
+      border-color: #6d28d9;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
     }
     .tab-btn.active-cq {
       background: #be123c;
@@ -420,24 +426,53 @@
       div[style*="width:380px"] { width: 100% !important; }
       .top-actions-bar { padding: 8px; }
       .search-box { max-width: none; }
-      #cqContainer { overflow-x: auto; }
+      #cqContainer, #bobContainer { overflow-x: auto; }
     }
     @media print {
-      @page { size: landscape; margin: 10mm; }
-      body { background: white; padding: 0; }
-      .no-print { display: none !important; }
+      @page { size: A4 landscape; margin: 8mm; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      html, body { background: #fff !important; padding: 0 !important; margin: 0 !important; }
+      .container { max-width: none !important; width: 100% !important; padding: 0 !important; }
+      .no-print, .modal-backdrop, #cqSearchList, #bobSearchList { display: none !important; }
       .table-container { border: none; box-shadow: none; }
       table { font-size: 9px; }
       th, td { padding: 4px 6px; }
+
+      /* ===== Fiches Contrôle Qualité & Bobine : mise en page propre ===== */
+      #cqContainer, #bobContainer { margin: 0 !important; }
+      #cqContainer button, #bobContainer button { display: none !important; }
+      #cqContainer *, #bobContainer * { overflow: visible !important; box-shadow: none !important; }
+      #cqContainer table, #bobContainer table { width: 100% !important; table-layout: auto; }
+      #cqContainer th, #cqContainer td, #bobContainer th, #bobContainer td {
+        padding: 3px 4px !important; font-size: 10px !important; white-space: normal !important; min-width: 0 !important;
+      }
+      #cqContainer thead, #bobContainer thead { display: table-header-group; }
+      #cqContainer tr, #bobContainer tr { break-inside: avoid; page-break-inside: avoid; }
+
+      /* champs de saisie -> texte imprimé (sans cadres, flèches ni placeholders) */
+      #cqContainer input, #cqContainer select, #cqContainer textarea,
+      #bobContainer input, #bobContainer select, #bobContainer textarea {
+        border: none !important; border-bottom: 1px solid #94a3b8 !important; border-radius: 0 !important;
+        padding: 1px 2px !important; margin: 0 !important; width: 100% !important; min-width: 0 !important;
+        font-size: 11px !important; text-align: center; color: #000 !important; outline: none !important;
+        -webkit-appearance: none !important; appearance: none !important; -moz-appearance: textfield !important;
+      }
+      #cqContainer td input, #cqContainer td select, #bobContainer td input, #bobContainer td select { border-bottom: none !important; }
+      #cqContainer ::placeholder, #bobContainer ::placeholder { color: transparent !important; }
+      #cqContainer select:has(option[value=""]:checked), #bobContainer select:has(option[value=""]:checked) { color: transparent !important; }
+      #cqContainer input::-webkit-outer-spin-button, #cqContainer input::-webkit-inner-spin-button,
+      #bobContainer input::-webkit-outer-spin-button, #bobContainer input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+      #cqContainer input::-webkit-calendar-picker-indicator, #bobContainer input::-webkit-calendar-picker-indicator { display: none; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <header class="no-print" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:12px 20px;">
-      <h1 id="mainAppTitle" style="margin:0; font-size:1.15rem; font-weight:900;">FICHE DE CONTRÔLE QUALITÉ (CQ-FO-10)</h1>
+      <h1 id="mainAppTitle" style="margin:0; font-size:1.15rem; font-weight:900;">FICHE DE CONTRÔLE QUALITÉ</h1>
       <div style="display:flex; gap:6px; background:#f1f5f9; padding:4px; border-radius:10px; border:1px solid #cbd5e1; align-items:center;">
         <button id="navCQ" onclick="switchPage('cq')" class="act-btn" style="background:#0f172a; color:#fff; font-size:12px; padding:6px 12px; cursor:pointer;">📋 Fiche Contrôle Qualité</button>
+        <button id="navBOB" onclick="switchPage('bob')" class="act-btn" style="background:#e2e8f0; color:#334155; font-size:12px; padding:6px 12px; cursor:pointer;">🎞️ Contrôle Bobine</button>
         <button id="navDB" onclick="switchPage('db')" class="act-btn" style="background:#e2e8f0; color:#334155; font-size:12px; padding:6px 12px; cursor:pointer;">🗄️ Base de Données</button>
         <button onclick="exportBackup()" class="act-btn" style="background:#e2e8f0; color:#334155; font-size:12px; padding:6px 12px;" title="Exporter toutes les données (JSON)">💾 Sauvegarde</button>
         <button onclick="document.getElementById('backupFile').click()" class="act-btn" style="background:#e2e8f0; color:#334155; font-size:12px; padding:6px 12px;" title="Restaurer une sauvegarde">📥 Restaurer</button>
@@ -451,6 +486,7 @@
       <button class="tab-btn" id="tabCarton" onclick="switchTab('cartons')">📦 Caisses & Cartons (CRT)</button>
       <button class="tab-btn" id="tabSachet" onclick="switchTab('sachets')">🛍️ Sachets d'Emballage (SCH)</button>
       <button class="tab-btn" id="tabPalette" onclick="switchTab('palettes')">🪵 Palettes (PL)</button>
+      <button class="tab-btn" id="tabBobine" onclick="switchTab('bobines')">🎞️ Bobines (Article ↔ Bobine)</button>
     </div>
 
     <div class="top-actions-bar no-print" id="topActionsBar">
@@ -470,6 +506,7 @@
 
     <!-- Conteneur Spécial Contrôle Qualité CQ-FO-10 -->
     <div id="cqContainer" style="display:none; margin-bottom: 20px;"></div>
+    <div id="bobContainer" style="display:none; margin-bottom: 20px;"></div>
 
     <div class="table-container" id="mainTableContainer">
       <table>
@@ -533,6 +570,8 @@
         <div style="font-weight:800;margin-bottom:6px;">1. Archiver la fiche CQ</div>
         <button class="share-option" onclick="saveFiche()">💾 Enregistrer la fiche en cours dans l'historique</button>
         <div id="exHist" style="max-height:190px;overflow-y:auto;margin-bottom:16px;"></div>
+        <div style="font-weight:800;font-size:13px;margin:4px 0 6px;">🎞️ Historique des fiches Contrôle Bobine</div>
+        <div id="exHistBob" style="max-height:190px;overflow-y:auto;margin-bottom:16px;"></div>
 
         <div style="font-weight:800;margin-bottom:6px;">2. Excel (.xlsx)</div>
         <button class="share-option" onclick="exportXlsx(false)">📗 Excel complet : Historique CQ + Fiche en cours + PET + Cartons + Sachets + Palettes</button>
@@ -600,6 +639,35 @@
       </div>
       <div class="modal-footer">
         <button class="modal-btn primary" onclick="closeDefautCatalogueModal()">Fermer le guide</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Guide défauts bobine -->
+  <div class="modal-backdrop" id="bobGuideModal">
+    <div class="modal-card" style="max-width: 980px; width: 95%;">
+      <div class="modal-header" style="background:#0f172a; color:#fff;">
+        <span>📖 Guide Officiel des Non-Conformités Bobine (Bilingue FR / AR)</span>
+        <button class="modal-close" style="color:#fff;" onclick="bobCloseGuide()">&times;</button>
+      </div>
+      <div class="modal-body" id="bobGuideBody" style="max-height: 520px; overflow-y:auto; padding:16px;"></div>
+      <div class="modal-footer">
+        <button class="modal-btn primary" onclick="bobCloseGuide()">Fermer le guide</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Non-conformités bobine -->
+  <div class="modal-backdrop" id="bobNcModal">
+    <div class="modal-card" style="max-width: 760px; width: 95%;">
+      <div class="modal-header" style="background:#be123c; color:#fff;">
+        <span id="bobNcTitle">⚠️ Non-conformités bobine</span>
+        <button class="modal-close" style="color:#fff;" onclick="bobCloseNc()">&times;</button>
+      </div>
+      <div id="bobNcBody" style="padding:12px 16px; max-height:60vh; overflow-y:auto;"></div>
+      <div class="modal-footer" style="justify-content:space-between; align-items:center;">
+        <span id="bobNcCount" style="font-size:12px; font-weight:800; color:#0f172a;"></span>
+        <button class="modal-btn primary" onclick="bobCloseNc()">Valider</button>
       </div>
     </div>
   </div>
@@ -778,6 +846,7 @@
       localStorage.setItem('pet_db_sachets_v2', JSON.stringify(sachets));
       localStorage.setItem('pet_db_palettes_v2', JSON.stringify(palettes));
       localStorage.setItem('pet_db_pet_v2', JSON.stringify(petProducts));
+      try { localStorage.setItem('bob_db_v1', JSON.stringify(bobDB)); } catch (e) {}
     }
 
     const ITEMS_PER_PAGE = 15;
@@ -798,35 +867,19 @@
 
     function switchPage(page) {
       activePage = page;
-      const navCQ = document.getElementById('navCQ');
-      const navDB = document.getElementById('navDB');
+      try { cqCloseList(); bobCloseList(); } catch (e) {}
+      const setNav = (id, on) => { const e = document.getElementById(id); if (e) { e.style.background = on ? '#0f172a' : '#e2e8f0'; e.style.color = on ? '#fff' : '#334155'; } };
+      setNav('navCQ', page === 'cq'); setNav('navBOB', page === 'bob'); setNav('navDB', page === 'db');
+      const titles = { cq: 'FICHE DE CONTRÔLE QUALITÉ', bob: 'CONTRÔLE QUALITÉ BOBINE', db: 'BASE DE DONNÉES USINE' };
       const mainAppTitle = document.getElementById('mainAppTitle');
-      const tabsBar = document.getElementById('tabsBar');
-      const topActionsBar = document.getElementById('topActionsBar');
-      const mainTableContainer = document.getElementById('mainTableContainer');
-      const cqContainer = document.getElementById('cqContainer');
-
-      if (page === 'cq') {
-        if (navCQ) { navCQ.style.background = '#0f172a'; navCQ.style.color = '#fff'; }
-        if (navDB) { navDB.style.background = '#e2e8f0'; navDB.style.color = '#334155'; }
-        if (mainAppTitle) mainAppTitle.innerText = 'FICHE DE CONTRÔLE QUALITÉ (CQ-FO-10)';
-        if (tabsBar) tabsBar.style.display = 'none';
-        if (topActionsBar) topActionsBar.style.display = 'none';
-        if (mainTableContainer) mainTableContainer.style.display = 'none';
-        if (cqContainer) {
-          cqContainer.style.display = 'block';
-          renderControleQualite();
-        }
-      } else {
-        if (navDB) { navDB.style.background = '#0f172a'; navDB.style.color = '#fff'; }
-        if (navCQ) { navCQ.style.background = '#e2e8f0'; navCQ.style.color = '#334155'; }
-        if (mainAppTitle) mainAppTitle.innerText = 'BASE DE DONNÉES USINE';
-        if (tabsBar) tabsBar.style.display = 'flex';
-        if (topActionsBar) topActionsBar.style.display = 'flex';
-        if (mainTableContainer) mainTableContainer.style.display = 'block';
-        if (cqContainer) cqContainer.style.display = 'none';
-        renderTable();
-      }
+      if (mainAppTitle) mainAppTitle.innerText = titles[page] || titles.cq;
+      const show = (id, d) => { const e = document.getElementById(id); if (e) e.style.display = d; };
+      const isDb = page === 'db';
+      show('tabsBar', isDb ? 'flex' : 'none'); show('topActionsBar', isDb ? 'flex' : 'none'); show('mainTableContainer', isDb ? 'block' : 'none');
+      show('cqContainer', page === 'cq' ? 'block' : 'none'); show('bobContainer', page === 'bob' ? 'block' : 'none');
+      if (page === 'cq') renderControleQualite();
+      else if (page === 'bob') bobRender();
+      else renderTable();
     }
 
     function switchTab(tab) {
@@ -841,6 +894,7 @@
       document.getElementById('tabCarton').className = 'tab-btn' + (tab === 'cartons' ? ' active-carton' : '');
       document.getElementById('tabSachet').className = 'tab-btn' + (tab === 'sachets' ? ' active-sachet' : '');
       document.getElementById('tabPalette').className = 'tab-btn' + (tab === 'palettes' ? ' active-palette' : '');
+      document.getElementById('tabBobine').className = 'tab-btn' + (tab === 'bobines' ? ' active-bobine' : '');
 
       renderTable();
     }
@@ -870,6 +924,7 @@
           if (currentTab === 'cartons') cartons = cartons.filter((_, idx) => !selectedIndices.has(idx));
           else if (currentTab === 'sachets') sachets = sachets.filter((_, idx) => !selectedIndices.has(idx));
           else if (currentTab === 'palettes') palettes = palettes.filter((_, idx) => !selectedIndices.has(idx));
+          else if (currentTab === 'bobines') { bobDB = bobDB.filter((_, idx) => !selectedIndices.has(idx)); }
           else petProducts = petProducts.filter((_, idx) => !selectedIndices.has(idx));
           saveAll();
           selectedIndices.clear();
@@ -908,6 +963,7 @@
       if (currentTab === 'cartons') return cartons;
       if (currentTab === 'sachets') return sachets;
       if (currentTab === 'palettes') return palettes;
+      if (currentTab === 'bobines') return bobDB;
       return petProducts;
     }
 
@@ -971,7 +1027,10 @@
       const list = getActiveList();
 
       let filtered = list.map((item, originalIdx) => ({ ...item, originalIdx }));
-      if (q) {
+      if (q && currentTab === 'bobines') {
+        const toks = cqNorm(q).split(/\s+/).filter(Boolean);
+        filtered = filtered.filter(item => { const h = bobHaystack(item); return toks.every(t => h.includes(t)); });
+      } else if (q) {
         filtered = filtered.filter(item => Object.values(item).some(val => String(val).toLowerCase().includes(q)));
       }
 
@@ -1118,6 +1177,35 @@
             <td class="text-center no-print"><button onclick="event.stopPropagation(); openEditModal(${item.originalIdx})">✏️</button></td>
           </tr>
         `).join('');
+      } else if (currentTab === 'bobines') {
+        headerRow.innerHTML = `
+          ${isDeleteMode ? '<th class="text-center" style="width:30px;">☑</th>' : ''}
+          ${isEditMode ? '<th class="text-center" style="width:30px;">✎</th>' : ''}
+          <th class="text-center" style="width:35px;">#</th>
+          <th style="background:#ede9fe; color:#5b21b6;">ARTICLE THERMOFORMAGE</th>
+          <th style="background:#ede9fe; color:#5b21b6;">BOBINE</th>
+          <th class="text-center" style="background:#ede9fe; color:#5b21b6;">MICRONAGE</th>
+          <th class="text-center" style="background:#ede9fe; color:#5b21b6;">LAIZE</th>
+          <th class="text-center" style="background:#ede9fe; color:#5b21b6;">COULEUR</th>
+          <th class="text-center" style="background:#ede9fe; color:#5b21b6;">QUALITÉ</th>
+          <th class="text-center no-print" style="width:45px;">ACT</th>
+        `;
+        tbody.innerHTML = paginated.map((item, idx) => {
+          const sp = bobSpecs(item);
+          return `
+          <tr onclick="${isEditMode ? `openEditModal(${item.originalIdx})` : ''}">
+            ${isDeleteMode ? `<td class="text-center"><input type="checkbox" ${selectedIndices.has(item.originalIdx) ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectRow(${item.originalIdx})" /></td>` : ''}
+            ${isEditMode ? `<td class="text-center"><button onclick="event.stopPropagation(); openEditModal(${item.originalIdx})">✎</button></td>` : ''}
+            <td class="text-center font-mono" style="color:#94a3b8;">${startIndex + idx + 1}</td>
+            <td style="font-weight:900; font-size:0.9rem; color:#0f172a;">${item.article ? highlightText(esc(item.article), q) : '<i style="color:#94a3b8; font-weight:600;">(article non renseigné)</i>'}</td>
+            <td class="font-mono font-bold" style="font-size:0.8rem;">${highlightText(esc(item.bobine), q)}</td>
+            <td class="text-center font-mono font-bold">${sp.mic} µm</td>
+            <td class="text-center font-mono font-bold">${sp.laize} mm</td>
+            <td class="text-center">${esc(sp.color)}</td>
+            <td class="text-center font-mono font-bold">${esc(sp.qual)}</td>
+            <td class="text-center no-print"><button onclick="event.stopPropagation(); openEditModal(${item.originalIdx})">✏️</button></td>
+          </tr>`;
+        }).join('');
       } else {
         headerRow.innerHTML = `
           ${isDeleteMode ? '<th class="text-center" style="width:30px;">☑</th>' : ''}
@@ -1176,7 +1264,7 @@
       currentEditIdx = originalIdx;
       const list = getActiveList();
       const item = list[originalIdx];
-      document.getElementById('addModalTitle').textContent = `Modifier : ${item.ref || item.reference}`;
+      document.getElementById('addModalTitle').textContent = `Modifier : ${item.ref || item.reference || (item.article || item.bobine)}`;
       renderFormFields(item);
       document.getElementById('addModal').classList.add('open');
     }
@@ -1219,6 +1307,11 @@
           <div class="form-group"><label>DÉSIGNATION *</label><input type="text" id="fSchDesig" value="${item ? esc(item.designation) : ''}" required /></div>
           <div class="form-group"><label>DIMENSIONS (MM) *</label><input type="text" id="fSchDim" value="${item ? esc(item.dimensions) : ''}" required /></div>
         `;
+      } else if (currentTab === 'bobines') {
+        container.innerHTML = `
+          <div class="form-group"><label>ARTICLE THERMOFORMAGE</label><input type="text" id="fBobArt" value="${item ? esc(item.article) : ''}" /></div>
+          <div class="form-group"><label>BOBINE *</label><input type="text" id="fBobBob" value="${item ? esc(item.bobine) : ''}" placeholder="BOBINE SF-PET 290 840 TRANSPARENT F2 SILICONE 2" required /></div>
+        `;
       } else {
         container.innerHTML = `
           <div class="form-group"><label>RÉF PALETTE *</label><input type="text" id="fPalRef" value="${item ? esc(item.ref) : ''}" required /></div>
@@ -1232,11 +1325,13 @@
     function handleFormSubmit(e) {
       e.preventDefault();
       const _idMap = { pet: ['fPetRef', 'reference', petProducts], cartons: ['fCrtRef', 'ref', cartons], sachets: ['fSchRef', 'ref', sachets], palettes: ['fPalRef', 'ref', palettes] };
-      const [_fid, _key, _list] = _idMap[currentTab];
-      const _v = clean(document.getElementById(_fid).value).toUpperCase();
-      if (_list.some((x, i) => i !== currentEditIdx && String(x[_key]).toUpperCase() === _v)) {
-        alert('Cette référence existe déjà : ' + _v);
-        return;
+      if (_idMap[currentTab]) {
+        const [_fid, _key, _list] = _idMap[currentTab];
+        const _v = clean(document.getElementById(_fid).value).toUpperCase();
+        if (_list.some((x, i) => i !== currentEditIdx && String(x[_key]).toUpperCase() === _v)) {
+          alert('Cette référence existe déjà : ' + _v);
+          return;
+        }
       }
       if (currentTab === 'pet') {
         const ref = clean(document.getElementById('fPetRef').value).toUpperCase();
@@ -1281,6 +1376,15 @@
         };
         if (currentEditIdx !== null) sachets[currentEditIdx] = obj;
         else sachets.unshift(obj);
+      } else if (currentTab === 'bobines') {
+        const art = clean(document.getElementById('fBobArt').value).replace(/\s+/g, ' ');
+        const bob = clean(document.getElementById('fBobBob').value).replace(/\s+/g, ' ');
+        if (bobSpecs({ bobine: bob }).mic <= 0) { alert('Format bobine non reconnu.\nExemple : BOBINE SF-PET 290 840 TRANSPARENT F2 SILICONE 2'); return; }
+        if (bobDB.some((x, i) => i !== currentEditIdx && x.article.toUpperCase() === art.toUpperCase() && x.bobine.toUpperCase() === bob.toUpperCase())) { alert('Cette ligne existe déjà.'); return; }
+        const keepId = currentEditIdx !== null ? bobDB[currentEditIdx].id : 'b' + Date.now();
+        const obj = { id: keepId, article: art, bobine: bob };
+        if (currentEditIdx !== null) bobDB[currentEditIdx] = obj;
+        else bobDB.unshift(obj);
       } else {
         const obj = {
           ref: clean(document.getElementById('fPalRef').value).toUpperCase(),
@@ -1411,7 +1515,7 @@
     function clean(v) { return String(v).replace(/[<>"]/g, '').trim(); }
 
     function exportBackup() {
-      const data = { v: 1, cartons, sachets, palettes, petProducts, cqState };
+      const data = { v: 1, cartons, sachets, palettes, petProducts, cqState, bobDB, bobState, bobHistory: bobLoadHist() };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -1433,6 +1537,10 @@
           palettes = Array.isArray(d.palettes) ? d.palettes : palettes;
           petProducts = d.petProducts;
           if (d.cqState && Array.isArray(d.cqState.inspections)) Object.assign(cqState, d.cqState);
+          if (Array.isArray(d.bobDB) && d.bobDB.length) bobDB = d.bobDB;
+          if (d.bobState && Array.isArray(d.bobState.inspections)) Object.assign(bobState, d.bobState);
+          if (Array.isArray(d.bobHistory)) bobStoreHist(d.bobHistory);
+          saveBob();
           saveAll(); saveCQ(); switchPage(activePage);
         } catch (e) { alert('Fichier de sauvegarde invalide.'); }
         ev.target.value = '';
@@ -1521,15 +1629,12 @@
           <div style="background:#0f172a; color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; border-bottom:2px solid #1e293b;">
             <div>
               <div style="font-size:1.05rem; font-weight:900; text-transform:uppercase; letter-spacing:0.04em;">SUIVI CONTRÔLE QUALITÉ THERMOFORMAGE / PRODUCTION</div>
-              <div style="font-size:0.75rem; color:#94a3b8; font-family:monospace; margin-top:2px;">
-                Service : Qualité &bull; <strong style="color:#f59e0b;">Code : CQ-FO-10</strong> &bull; Version 01
-              </div>
             </div>
             <div class="no-print" style="display:flex; gap:8px;">
               <button class="act-btn" style="background:#334155; color:#fde68a;" onclick="generateCQShift()">&plus; Générer Shift (8h)</button>
               <button class="act-btn" style="background:#2563eb;" onclick="ficheBtn()">💾 Enregistrer la fiche</button>
-              <button class="act-btn" style="background:#15803d;" onclick="exportXlsx(true)">📗 Excel</button>
-              <button class="act-btn" style="background:#059669;" onclick="window.print()">&star; Imprimer CQ-FO-10</button>
+              <button class="act-btn" style="background:#15803d;" onclick="exportXlsx(true)">📗 Enregistrer en Excel</button>
+              <button class="act-btn" style="background:#059669;" onclick="window.print()">&star; Imprimer</button>
             </div>
           </div>
 
@@ -1567,17 +1672,20 @@
 
           <!-- Sélection compacte Référence Produit (Grand & Gras) -->
           <div style="padding:14px 18px; background:#fff; border-bottom:2px solid #cbd5e1; display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
-            <div style="width:380px;">
+            <div id="cqSearchWrap" style="width:380px; max-width:100%; position:relative;">
               <label style="display:block; font-size:13px; font-weight:900; text-transform:uppercase; color:#0f172a; margin-bottom:4px;">
                 R&Eacute;F&Eacute;RENCE PRODUIT
               </label>
-              <select onchange="onSelectCQProduct(this.value)" style="width:100%; padding:9px 12px; font-size:14px; font-family:monospace; font-weight:900; color:#0f172a; background:#f8fafc; border:2px solid #475569; border-radius:8px; outline:none; cursor:pointer;">
-                ${petProducts.map(item => `
-                  <option value="${esc(item.reference)}" ${item.reference === cqState.selectedRef ? 'selected' : ''}>
-                    ${item.reference} [${item.mouleMachine}]
-                  </option>
-                `).join('')}
-              </select>
+              <div id="cqSearchRow" style="display:flex; gap:6px; align-items:stretch;">
+                <input id="cqSearchInput" type="text" autocomplete="off" spellcheck="false"
+                  value="${esc(cqState.selectedRef)}"
+                  placeholder="Réf, début du code ou couleur (ex: HP024, rose, vert...)"
+                  onfocus="cqSearchFocus(this)" oninput="cqSearchTyped(this)" onkeydown="cqSearchKey(event)"
+                  style="flex:1; min-width:0; padding:9px 12px; font-size:14px; font-family:monospace; font-weight:900; color:#0f172a; background:#f8fafc; border:2px solid #475569; border-radius:8px; outline:none;" />
+                <button type="button" id="cqDbBtn" onclick="cqToggleDb(event)" title="Afficher toute la base de données"
+                  style="width:42px; flex:none; font-size:18px; font-weight:900; line-height:1; color:#0f172a; background:#e2e8f0; border:2px solid #475569; border-radius:8px; cursor:pointer;">&#9638;</button>
+              </div>
+              <div id="cqSearchList" style="display:none; position:fixed; z-index:9999; background:#fff; border:2px solid #475569; border-radius:10px; box-shadow:0 12px 28px rgba(15,23,42,0.25); overflow-y:auto;"></div>
             </div>
 
             <div style="flex:1; background:#f8fafc; border:2px solid #94a3b8; border-radius:8px; padding:8px 14px;">
@@ -2102,6 +2210,432 @@
       document.getElementById('defautCatalogueModal').classList.remove('open');
     }
 
+    // ==========================================
+    // CONTRÔLE QUALITÉ BOBINE (EXTRUSION)
+    // ==========================================
+    const BOB_DEFAULT_DB = [{"article": "COUVERCLE PLASTIQUE PET COMMUN ROND HAUT diametre 176 TRANSPARENT 10 GR", "bobine": "BOBINE SF-PET 290 840 TRANSPARENT F2 SILICONE 2", "id": "b1"}, {"article": "COUVERCLE PLASTIQUE PET COMMUN ROND BAS diametre 176 TRANSPARENT 10 GRC1", "bobine": "BOBINE SF-PET 290 840 TRANSPARENT F2 SILICONE 2", "id": "b2"}, {"article": "", "bobine": "BOBINE SF-PET 255 890 TRANSPARENT F2 SILICONE 2", "id": "b3"}, {"article": "BARQUETTE PLASTIQUE PET PACK FAMILY 45 BIG NOIR OPAQUE 12 GR", "bobine": "BOBINE SF-PET 240 800 BLANC OPAQUE F3 SILICONE 2", "id": "b4"}, {"article": "COUVERCLE PLASTIQUE PET COMMUN ROND BAS diametre 176 TRANSPARENT", "bobine": "BOBINE SF-PET 290 840 TRANSPARENT F2 SILICONE 2", "id": "b5"}, {"article": "BARQUETTE PLASTIQUE PET RAYEE 2000 CC TRANSPARENT 37 GR", "bobine": "BOBINE SF-PET 345 805 TRANSPARENT F2 SILICONE 2", "id": "b6"}, {"article": "BARQUETTE PLASTIQUE PET PACK FAMILY 45 BIG NOIR OPAQUE 12 GRC3", "bobine": "BOBINE SF-PET 240 800 NOIR OPAQUE F3 SILICONE 2", "id": "b7"}, {"article": "BARQUETTE PLASTIQUE PET RAYEE 1500 CC TRANSPARENT 31,5 GR", "bobine": "BOBINE SF-PET 290 805 TRANSPARENT F2 SILICONE 2", "id": "b8"}, {"article": "BARQUETTE PLASTIQUE PET RAYEE 500 CC TRANSPARENT", "bobine": "BOBINE SF-PET 310 800 TRANSPARENT F2 SILICONE 2", "id": "b9"}, {"article": "BARQUETTE PLASTIQUE PET PACK FAMILY 45 BIG TRANSPARENT 12 GR", "bobine": "BOBINE SF-PET 240 800 TRANSPARENT F3 SILICONE 3", "id": "b10"}, {"article": "BARQUETTE PLASTIQUE PET DATTE 250 GR TRANSPARENT", "bobine": "BOBINE SF-PET 315 785 TRANSPARENT F2 SILICONE 2", "id": "b11"}, {"article": "BARQUETTE PLASTIQUE PET RAYEE 1250 CC TRANSPARENT 29,5 GR", "bobine": "BOBINE SF-PET 275 805 TRANSPARENT F2 SILICONE 2", "id": "b12"}, {"article": "ALVEOLE PLASTIQUE PET FRUIT -14 COMPARTIMENTS ROND BLANC OPAQUE 22 GR", "bobine": "BOBINE SF-PET 110 1000 BLANC OPAQUE F3 SILICONE", "id": "b13"}, {"article": "BARQUETTE PLASTIQUE PET PACK FAMILY 45 SMALL BLANC OPAQUE 11 GRC2", "bobine": "BOBINE SF-PET 240 800 BLANC OPAQUE F3 SILICONE 2", "id": "b14"}, {"article": "BARQUETTE PLASTIQUE PET RAYEE 150 CC BLANC OPAQUE 08 GR", "bobine": "BOBINE SF-PET 225 820 BLANC OPAQUE F3 SILICONE 2", "id": "b15"}, {"article": "BARQUETTE PLASTIQUE PET PACK FAMILY 45 BIG BLANC OPAQUE 12 GRC1", "bobine": "BOBINE SF-PET 240 800 BLANC OPAQUE F3 SILICONE 2", "id": "b16"}, {"article": "BARQUETTE PLASTIQUE PET RAYEE 1000 CC L TRANSPARENT 22 GR", "bobine": "BOBINE SF-PET 330 910 TRANSPARENT F2 SILICONE 2", "id": "b17"}, {"article": "BARQUETTE PLASTIQUE PET BISCUITS 2 TRANSPARENT 2,3 GR", "bobine": "BOBINE SF-PET 180 820 TRANSPARENT F3 SILICONE 2", "id": "b18"}, {"article": "BARQUETTE PLASTIQUE PET MADELEINE - 10 COMPARTIMENTS CARRE TRANSPARENT 12,5 GR", "bobine": "BOBINE SF-PET 185 850 TRANSPARENT F3 SILICONE 2", "id": "b19"}, {"article": "BOITE PLASTIQUE PET SALADE 250 GR diametre 172 TRANSPARENT 13 GR", "bobine": "BOBINE SF-PET 380 880 TRANSPARENT F1 SILICONE 2", "id": "b20"}, {"article": "BARQUETTE PLASTIQUE PET DATTE 2 KG TRANSPARENT 57 GR", "bobine": "BOBINE SF-PET 340 690 TRANSPARENT F1 SILICONE 2", "id": "b21"}, {"article": "BARQUETTE PLASTIQUE PET RAYEE 250 CC TRANSPARENT 8,5 GR", "bobine": "BOBINE SF-PET 240 820 TRANSPARENT F2 SILICONE 2", "id": "b22"}, {"article": "BARQUETTE PLASTIQUE PET DATTE 500 GR TRANSPARENT 23 GRC1", "bobine": "BOBINE SF-PET 285 750 TRANSPARENT F2 SILICONE 2", "id": "b23"}, {"article": "BARQUETTE PLASTIQUE PET MADELEINE PLATEAU TRANSPARENT 8,5 GRC1", "bobine": "BOBINE SF-PET 215 840 TRANSPARENT F3 SILICONE 3", "id": "b24"}, {"article": "COFFRET PLASTIQUE PET PATISSERIE 18 TRANSPARENT 12 GR", "bobine": "BOBINE SF-PET 220 800 TRANSPARENT F3 SILICONE 2", "id": "b25"}, {"article": "BARQUETTE PLASTIQUE PET RAYEE PETIT FOUR TRANSPARENT 34 GR", "bobine": "BOBINE SF-PET 330 805 TRANSPARENT F2 SILICONE 2", "id": "b26"}, {"article": "BARQUETTE PLASTIQUE PET RAYEE 1500 CC TRANSPARENT 31,5 GRC2", "bobine": "BOBINE SF-PET 290 805 TRANSPARENT F2 SILICONE 2", "id": "b27"}, {"article": "BARQUETTE PLASTIQUE PET RAYEE 2000 CC TRANSPARENT 37 GRC2", "bobine": "BOBINE SF-PET 345 805 TRANSPARENT F2 SILICONE 2", "id": "b28"}, {"article": "BARQUETTE PLASTIQUE PET RAYEE 2000 CC L TRANSPARENT 37 GRC2", "bobine": "BOBINE SF-PET 345 805 TRANSPARENT F2 SILICONE 2", "id": "b29"}, {"article": "ALVEOLE PLASTIQUE PET ŒUF DE CAILLE 12 COMPARTIMENTS TRANSPARENT 13 GRC1", "bobine": "BOBINE SF-PET 270 720 TRANSPARENT F2 SILICONE 2", "id": "b30"}, {"article": "BARQUETTE PLASTIQUE PET ROULE SMALL TRANSPARENT 06 GRC1", "bobine": "BOBINE SF-PET 330 790 TRANSPARENT F3 SILICONE 3", "id": "b31"}, {"article": "BOITE PLASTIQUE PET SALADE 500 GR diametre 172 TRANSPARENT 19 GR", "bobine": "BOBINE SF-PET 540 880 TRANSPARENT F1 SILICONE 2", "id": "b32"}, {"article": "BOITE PLASTIQUE PET BONBON ROND H75 diametre 172 TRANSPARENT 30 GR", "bobine": "BOBINE SF-PET 880 880 TRANSPARENT F1 SILICONE 2", "id": "b33"}, {"article": "BOITE PLASTIQUE PET BONBON ROND H130 diametre 172 TRANSPARENT 40 GR", "bobine": "BOBINE SF-PET 1060 880 TRANSPARENT F1 SILICONE 2", "id": "b34"}];
+    const BOB_NC_LIST = [
+      { code: 'NC-BOB-01', fr: 'Des taches noires', ar: 'بقع سوداء' },
+      { code: 'NC-BOB-02', fr: 'Des trous', ar: 'ثقوب' },
+      { code: 'NC-BOB-03', fr: 'La présence de rayures rugueuses ou fines sur le film', ar: 'وجود خطوط خشنة او رقيقة على الفيلم' },
+      { code: 'NC-BOB-04', fr: 'Micronnage non homogène dans les différentes parties de la bobine', ar: 'ميكروناج غير متجانس في الأجزاء المختلفة من البوبين (وسط يمين ويسار)' },
+      { code: 'NC-BOB-05', fr: 'Couleur ne correspond pas à la qualité programmée', ar: 'لون غير مناسب للجودة المبرمجة' },
+      { code: 'NC-BOB-06', fr: 'Film a un aspect cassable (cas de la 2ème et la 3ème qualité)', ar: 'فيلم قابل الانكسار في حالة الجودة درجة ثانية أو ثالثة' },
+      { code: 'NC-BOB-07', fr: 'Un manque ou absence du silicone sur les différentes parties de la bobine', ar: 'نقص أو عدم وجود السليكون فلبوبين' },
+      { code: 'NC-BOB-08', fr: "Aspect flou (cylindre sale ou débit de silicone inapproprié)", ar: 'مظهر ضبابي (ناتج عن اتساخ السيلندر أو تدفق كبير (غير مناسب) لكمية السيليكون)' },
+      { code: 'NC-BOB-09', fr: 'Grumeaux sur le film (flux irrégulier ou important de matière sortant de la tête ou du filtre)', ar: 'حبيبات على الفيلم ناتجة عن تدفق غير منتظم أو كبير للمادة الخام الخارجة من الرأس أو الفيلتر' },
+      { code: 'NC-BOB-10', fr: 'Dimension (laize ou micronnage) ne correspond pas à ce qui est programmé', ar: 'عرض او سمك غير متطابق مع ما هو مبرمج' },
+      { code: 'NC-BOB-11', fr: 'Trace de vide ayant un impact sur un micronnage non homogène', ar: 'اثار ناتجة عن فراغ في المادة الأولية يسبب خلل في الميكروناج' }
+    ];
+    const BOB_KEY = 'bob_state_v1', BOB_DB_KEY = 'bob_db_v1';
+    const BOB_FIELDS = ['g1', 'g2', 'g3', 'd1', 'd2', 'd3'];
+    let bobDB = JSON.parse(JSON.stringify(BOB_DEFAULT_DB));
+    try { const s = JSON.parse(localStorage.getItem(BOB_DB_KEY)); if (Array.isArray(s) && s.length) bobDB = s; } catch (e) {}
+    function bobNewRow() {
+      const d = new Date();
+      return { id: String(Date.now()) + Math.floor(Math.random() * 1000), heure: String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'),
+        g1: '', g2: '', g3: '', d1: '', d2: '', d3: '', laize: '', defauts: [], decision: '', manual: false };
+    }
+    let bobState = {
+      rapportNum: '01', groupe: 'A', dateJour: new Date().toISOString().split('T')[0], agentQualite: '',
+      selectedId: '', inspections: [bobNewRow()]
+    };
+    try { const s = JSON.parse(localStorage.getItem(BOB_KEY)); if (s && Array.isArray(s.inspections)) Object.assign(bobState, s); } catch (e) {}
+    function saveBob() {
+      try { localStorage.setItem(BOB_KEY, JSON.stringify(bobState)); localStorage.setItem(BOB_DB_KEY, JSON.stringify(bobDB)); } catch (e) {}
+      try { scheduleBackup(); } catch (e) {}
+    }
+    function bobEntry() { return bobDB.find(e => e.id === bobState.selectedId) || bobDB[0] || null; }
+    function bobSpecs(e) {
+      const m = String((e && e.bobine) || '').match(/BOBINE\s+\S+\s+(\d+)\s+(\d+)\s*(.*?)\s*\b(F\d)\b\s*(?:SILICONE\s*(\d*))?/i);
+      if (!m) return { mic: 0, laize: 0, color: '', qual: '', sil: '' };
+      return { mic: parseInt(m[1], 10), laize: parseInt(m[2], 10), color: m[3].trim(), qual: m[4].toUpperCase(), sil: m[5] || '' };
+    }
+    const bobNum = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : 0; };
+    function bobAvg(arr) { const a = arr.map(bobNum).filter(x => x > 0); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0; }
+    function bobAutoDecision(r) {
+      const filled = BOB_FIELDS.filter(f => bobNum(r[f]) > 0).length;
+      if ((r.defauts || []).length) r.decision = 'NON CONFORME';
+      else if (filled === 6) r.decision = 'CONFORME';
+      else r.decision = '';
+    }
+    function bobInpStyle() {
+      return 'width:56px; padding:5px 3px; text-align:center; font-family:monospace; font-weight:900; font-size:13px; border-radius:6px; outline:none; border:2px solid #94a3b8; background:#fff; color:#0f172a;';
+    }
+    function bobDecStyle(d) {
+      const base = 'padding:5px 8px; font-size:12px; font-weight:900; border-radius:6px; border:2px solid #94a3b8; ';
+      if (d === 'CONFORME') return base + 'background:#dcfce7; color:#166534; border-color:#4ade80;';
+      if (d === 'NON CONFORME') return base + 'background:#fee2e2; color:#991b1b; border-color:#f87171;';
+      if (d === 'EN ATTENTE') return base + 'background:#fef3c7; color:#92400e; border-color:#fbbf24;';
+      return base + 'background:#fff; color:#0f172a;';
+    }
+    function bobNcCell(r, idx) {
+      return (r.defauts || []).map(c => '<span style="background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; padding:2px 5px; border-radius:4px; font-family:monospace; font-weight:900; font-size:11px; display:inline-flex; align-items:center; gap:3px; margin:1px;">' + esc(c.replace('NC-', '')) +
+        '<button type="button" class="no-print" onclick="bobRemoveNc(' + idx + ',\'' + c + '\')" style="background:none; border:none; color:#ef4444; font-weight:bold; cursor:pointer; font-size:12px; line-height:1; padding:0;">&times;</button></span>').join('') +
+        '<button type="button" class="no-print" onclick="bobOpenNc(' + idx + ')" style="padding:3px 8px; background:#0f172a; color:#fff; font-size:11px; font-weight:900; border-radius:4px; border:none; cursor:pointer; margin:1px;">+ NC</button>';
+    }
+    function bobRowHtml(r, idx, sp) {
+      const inp = f => '<td style="padding:5px; border:1px solid #cbd5e1;"><input type="number" step="any" id="bob-' + idx + '-' + f + '" value="' + esc(r[f]) + '" onchange="bobSet(' + idx + ',\'' + f + '\',this.value)" style="' + bobInpStyle() + '" /></td>';
+      return '<tr style="background:#fff;">' +
+        '<td style="padding:6px; border:1px solid #cbd5e1;"><input type="time" value="' + esc(r.heure) + '" onchange="bobSet(' + idx + ',\'heure\',this.value)" style="border:none; background:transparent; font-weight:900; font-size:14px; width:75px; text-align:center;" /></td>' +
+                inp('g1') + inp('g2') + inp('g3') +
+        inp('d1') + inp('d2') + inp('d3') +
+        '<td style="padding:5px; border:1px solid #cbd5e1;"><input type="number" step="any" value="' + esc(r.laize) + '" placeholder="' + (sp.laize || '') + '" onchange="bobSet(' + idx + ',\'laize\',this.value)" style="width:70px; padding:5px 3px; text-align:center; font-family:monospace; font-weight:900; font-size:13px; border-radius:6px; border:2px solid #94a3b8;" /></td>' +
+        '<td id="bob-' + idx + '-nc" style="padding:6px; border:1px solid #cbd5e1; min-width:170px; text-align:left;">' + bobNcCell(r, idx) + '</td>' +
+        '<td style="padding:6px; border:1px solid #cbd5e1;"><select id="bob-' + idx + '-dec" onchange="bobSet(' + idx + ',\'decision\',this.value)" style="' + bobDecStyle(r.decision) + '">' +
+        '<option value="">Sélectionner</option>' +
+        ['CONFORME', 'NON CONFORME', 'EN ATTENTE'].map(d => '<option value="' + d + '"' + (r.decision === d ? ' selected' : '') + '>' + (d === 'CONFORME' ? '✅ ' : d === 'NON CONFORME' ? '❌ ' : '⏳ ') + d + '</option>').join('') +
+        '</select></td>' +
+        '<td class="no-print" style="padding:6px; border:1px solid #cbd5e1;"><button onclick="bobDelRow(' + idx + ')" style="background:none; border:none; color:#ef4444; font-size:18px; font-weight:bold; cursor:pointer;" title="Supprimer">&times;</button></td></tr>';
+    }
+    function bobSummaryHtml() {
+      const n = bobState.inspections.length, nc = bobState.inspections.filter(r => r.decision === 'NON CONFORME').length;
+      return n + ' contrôle(s) · <span style="color:' + (nc ? '#b91c1c' : '#166534') + ';">' + nc + ' non conforme(s)</span>';
+    }
+    function bobRefreshRow(idx) {
+      const r = bobState.inspections[idx]; if (!r) return;
+      const nc = document.getElementById('bob-' + idx + '-nc'); if (nc) nc.innerHTML = bobNcCell(r, idx);
+      const dec = document.getElementById('bob-' + idx + '-dec'); if (dec) { dec.value = r.decision || ''; dec.setAttribute('style', bobDecStyle(r.decision)); }
+      const sm = document.getElementById('bobSummary'); if (sm) sm.innerHTML = bobSummaryHtml();
+    }
+    function bobSet(idx, f, v) {
+      const r = bobState.inspections[idx]; if (!r) return;
+      if (f === 'decision') { r.decision = v; r.manual = v !== ''; }
+      else {
+        r[f] = v;
+        if (BOB_FIELDS.includes(f) && !r.manual) bobAutoDecision(r);
+      }
+      saveBob(); bobRefreshRow(idx);
+    }
+    function bobGenerateShift() {
+      if (bobState.inspections.some(r => BOB_FIELDS.some(f => bobNum(r[f]) > 0)) && !confirm('Remplacer les mesures actuelles par un nouveau shift vide ?')) return;
+      const times = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'];
+      bobState.inspections = times.map((t, idx) => { const r = bobNewRow(); r.id = String(Date.now() + idx); r.heure = t; return r; });
+      saveBob(); bobRender();
+    }
+    // ---- Fiche bobine : historique ----
+    const BOB_HIST_KEY = 'bob_history_v1';
+    function bobLoadHist() { try { return JSON.parse(lsGet(BOB_HIST_KEY, '[]')) || []; } catch (e) { return []; } }
+    function bobStoreHist(h) { lsSet(BOB_HIST_KEY, JSON.stringify(h)); scheduleBackup(); }
+    function bobFKey(st) { return [st.dateJour, st.groupe, st.rapportNum, st.selectedId].join('|'); }
+    function bobSaveFiche(silent) {
+      saveBob();
+      const h = bobLoadHist(), k = bobFKey(bobState);
+      const entry = { key: k, savedAt: new Date().toISOString(), state: JSON.parse(JSON.stringify(bobState)) };
+      const i = h.findIndex(x => x.key === k);
+      if (i >= 0) h[i] = entry; else h.push(entry);
+      bobStoreHist(h);
+      if (!silent) { exMsg(`✅ Fiche bobine enregistrée dans l'historique (${h.length} fiche(s)).`); renderBobHistList(); }
+      return h.length;
+    }
+    function bobFicheBtn() { const n = bobSaveFiche(true); alert(`Fiche enregistrée ✔ (${n} fiche(s) bobine dans l'historique)`); }
+    function bobOpenFiche(i) {
+      const h = bobLoadHist()[i]; if (!h) return;
+      if (!confirm('Charger cette fiche à la place de la fiche en cours ? (pensez à enregistrer la fiche actuelle avant)')) return;
+      Object.assign(bobState, JSON.parse(JSON.stringify(h.state)));
+      saveBob(); closeExportModal(); switchPage('bob');
+    }
+    function bobDelFiche(i) {
+      const h = bobLoadHist(); if (!h[i] || !confirm('Supprimer cette fiche de l\'historique ?')) return;
+      h.splice(i, 1); bobStoreHist(h); renderBobHistList();
+    }
+    function renderBobHistList() {
+      const h = bobLoadHist(), box = document.getElementById('exHistBob'); if (!box) return;
+      if (!h.length) { box.innerHTML = '<div style="color:#64748b;font-size:12px;">Aucune fiche bobine archivée. Cliquez sur « Enregistrer la fiche » dans Contrôle Bobine.</div>'; return; }
+      box.innerHTML = h.map((x, i) => ({ x, i })).sort((a, b) => b.x.savedAt.localeCompare(a.x.savedAt)).map(({ x, i }) => {
+        const st = x.state, nc = (st.inspections || []).filter(r => r.decision === 'NON CONFORME').length;
+        const e = bobDB.find(b => b.id === st.selectedId) || {};
+        return `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;background:#f8fafc;font-size:12px;">
+          <div><b>${esc(st.dateJour)}</b> · Groupe ${esc(st.groupe)} · Rapport ${esc(st.rapportNum)}<br><span style="color:#64748b;">${esc(e.bobine || e.article || '—')} · ${(st.inspections || []).length} contrôles · ${nc} NC · ${esc(st.agentQualite || '—')}</span></div>
+          <div style="display:flex;gap:5px;"><button class="modal-btn" onclick="bobOpenFiche(${i})">Ouvrir</button><button class="modal-btn" style="color:#b91c1c;" onclick="bobDelFiche(${i})">🗑️</button></div></div>`;
+      }).join('');
+    }
+    // ---- Guide des défauts bobine ----
+    function bobOpenGuide() {
+      document.getElementById('bobGuideBody').innerHTML = '<div style="padding:10px; display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:10px;">' + BOB_NC_LIST.map(n =>
+        '<div style="border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; background:#f8fafc;">' +
+        '<span style="font-family:monospace; font-weight:900; font-size:12px; background:#0f172a; color:#fff; padding:2px 6px; border-radius:4px;">' + esc(n.code) + '</span>' +
+        '<div style="font-size:12px; font-weight:900; color:#0f172a; margin-top:6px;">' + esc(n.fr) + '</div>' +
+        '<div style="font-size:12px; font-weight:800; color:#047857; text-align:right; margin-top:4px;" dir="rtl">' + esc(n.ar) + '</div></div>').join('') + '</div>';
+      document.getElementById('bobGuideModal').classList.add('open');
+    }
+    function bobCloseGuide() { document.getElementById('bobGuideModal').classList.remove('open'); }
+    function bobAddRow() { bobState.inspections.push(bobNewRow()); saveBob(); bobRender(); }
+    function bobDelRow(idx) { if (!confirm('Supprimer ce contrôle ?')) return; bobState.inspections.splice(idx, 1); if (!bobState.inspections.length) bobState.inspections.push(bobNewRow()); saveBob(); bobRender(); }
+    function bobRemoveNc(idx, code) {
+      const r = bobState.inspections[idx]; if (!r) return;
+      r.defauts = (r.defauts || []).filter(c => c !== code);
+      if (!r.manual) bobAutoDecision(r);
+      saveBob(); bobRefreshRow(idx);
+    }
+    // ---- Sélecteur de non-conformités ----
+    let bobNcIdx = -1;
+    function bobOpenNc(idx) {
+      bobNcIdx = idx;
+      const r = bobState.inspections[idx]; if (!r) return;
+      document.getElementById('bobNcTitle').textContent = '⚠️ Non-conformités bobine — contrôle de ' + (r.heure || '');
+      document.getElementById('bobNcBody').innerHTML = BOB_NC_LIST.map(n => {
+        const on = (r.defauts || []).includes(n.code);
+        return '<label style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:2px solid ' + (on ? '#f87171' : '#e2e8f0') + '; background:' + (on ? '#fef2f2' : '#fff') + '; border-radius:8px; margin-bottom:6px; cursor:pointer;">' +
+          '<input type="checkbox" ' + (on ? 'checked ' : '') + 'onchange="bobToggleNc(\'' + n.code + '\', this.checked, this)" style="margin-top:3px; width:18px; height:18px;" />' +
+          '<span><b style="font-family:monospace; color:#991b1b;">' + n.code + '</b><br><span style="font-size:13px; font-weight:700; color:#0f172a;">' + esc(n.fr) + '</span><br><span dir="rtl" style="display:block; font-size:13px; color:#475569; text-align:right;">' + esc(n.ar) + '</span></span></label>';
+      }).join('');
+      bobNcCount();
+      document.getElementById('bobNcModal').classList.add('open');
+    }
+    function bobNcCount() {
+      const r = bobState.inspections[bobNcIdx]; const n = r ? (r.defauts || []).length : 0;
+      document.getElementById('bobNcCount').textContent = n + ' non-conformité(s) sélectionnée(s)';
+    }
+    function bobToggleNc(code, on, el) {
+      const r = bobState.inspections[bobNcIdx]; if (!r) return;
+      const s = new Set(r.defauts || []); on ? s.add(code) : s.delete(code);
+      r.defauts = BOB_NC_LIST.map(n => n.code).filter(c => s.has(c));
+      if (el && el.parentElement) { el.parentElement.style.borderColor = on ? '#f87171' : '#e2e8f0'; el.parentElement.style.background = on ? '#fef2f2' : '#fff'; }
+      if (!r.manual) bobAutoDecision(r);
+      saveBob(); bobRefreshRow(bobNcIdx); bobNcCount();
+    }
+    function bobCloseNc() { document.getElementById('bobNcModal').classList.remove('open'); bobNcIdx = -1; }
+    // ---- Recherche article / bobine ----
+    let bobListOpen = false, bobTyped = false;
+    function bobColorOf(e) { return bobSpecs(e).color; }
+    function bobHaystack(e) {
+      const sp = bobSpecs(e);
+      return cqNorm([e.article, e.bobine, sp.color, sp.qual, sp.mic + ' ' + sp.laize].join(' '));
+    }
+    function bobMatches(q) {
+      const tokens = cqNorm(q).split(/\s+/).filter(Boolean);
+      if (!tokens.length) return bobDB.slice();
+      return bobDB.filter(e => { const h = bobHaystack(e); return tokens.every(t => h.includes(t)); });
+    }
+    function bobPosList() {
+      const row = document.getElementById('bobSearchRow'), box = document.getElementById('bobSearchList');
+      if (!row || !box) return;
+      const r = row.getBoundingClientRect();
+      const below = window.innerHeight - r.bottom - 12, above = r.top - 12;
+      const up = below < 200 && above > below;
+      box.style.left = r.left + 'px';
+      box.style.width = Math.max(r.width, Math.min(640, window.innerWidth - r.left - 8)) + 'px';
+      box.style.maxHeight = Math.max(160, Math.min(380, up ? above : below)) + 'px';
+      if (up) { box.style.top = 'auto'; box.style.bottom = (window.innerHeight - r.top + 4) + 'px'; }
+      else { box.style.bottom = 'auto'; box.style.top = (r.bottom + 4) + 'px'; }
+    }
+    function bobRenderList() {
+      const box = document.getElementById('bobSearchList'), inp = document.getElementById('bobSearchInput'); if (!box || !inp) return;
+      const q = bobTyped ? inp.value : '';
+      const list = bobMatches(q), cur = bobEntry();
+      const head = '<div style="position:sticky; top:0; background:#f1f5f9; padding:6px 12px; font-size:11px; font-weight:900; color:#475569; border-bottom:1px solid #cbd5e1; z-index:1;">' + list.length + ' / ' + bobDB.length + ' bobine(s)' + (q.trim() ? ' — « ' + esc(q.trim()) + ' »' : ' — base de données complète') + '</div>';
+      if (!list.length) { box.innerHTML = head + '<div style="padding:16px; text-align:center; color:#ef4444; font-weight:800; font-size:13px;">Aucune bobine trouvée</div>'; return; }
+      box.innerHTML = head + list.map(e => {
+        const sp = bobSpecs(e), sel = cur && e.id === cur.id;
+        return '<div data-id="' + esc(e.id) + '" onmousedown="event.preventDefault()" onclick="bobPick(this.dataset.id)" style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #e2e8f0; ' + (sel ? 'background:#fee2e2;' : '') + '" onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'' + (sel ? '#fee2e2' : '') + '\'">' +
+          '<div style="font-size:13px; font-weight:900; color:#0f172a;">' + (e.article ? cqHl(e.article, q) : '<i style="color:#94a3b8;">(article non renseigné)</i>') + '</div>' +
+          '<div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:3px;">' +
+          '<span style="font-family:monospace; font-size:11px; font-weight:800; color:#475569;">' + cqHl(e.bobine, q) + '</span>' +
+          '<span style="font-size:10px; font-weight:900; background:#e2e8f0; color:#334155; padding:1px 7px; border-radius:10px;">' + sp.mic + ' µm × ' + sp.laize + ' mm</span></div></div>';
+      }).join('');
+    }
+    function bobOpenList() { bobListOpen = true; const b = document.getElementById('bobSearchList'); if (!b) return; b.style.display = 'block'; bobPosList(); bobRenderList(); }
+    function bobCloseList() { bobListOpen = false; const b = document.getElementById('bobSearchList'); if (b) b.style.display = 'none'; }
+    function bobSearchFocus(el) { bobTyped = false; el.select(); bobOpenList(); }
+    function bobSearchTyped() { bobTyped = true; bobOpenList(); }
+    function bobToggleDb(ev) { if (ev) ev.stopPropagation(); if (bobListOpen) { bobCloseList(); return; } bobTyped = false; bobOpenList(); }
+    function bobSearchKey(ev) {
+      if (ev.key === 'Escape') { bobCloseList(); ev.target.blur(); }
+      else if (ev.key === 'Enter') { ev.preventDefault(); const l = bobMatches(bobTyped ? ev.target.value : ''); if (l.length) bobPick(l[0].id); }
+    }
+    function bobPick(id) { bobCloseList(); bobTyped = false; bobState.selectedId = id; saveBob(); bobRender(); }
+    document.addEventListener('mousedown', e => { if (bobListOpen && !e.target.closest('#bobSearchWrap')) bobCloseList(); });
+    window.addEventListener('resize', () => { if (bobListOpen) bobPosList(); });
+    window.addEventListener('scroll', () => { if (bobListOpen) bobPosList(); }, true);
+    // ---- Rendu de la page ----
+    function bobRender() {
+      const c = document.getElementById('bobContainer'); if (!c) return;
+      const e = bobEntry();
+      if (e && !bobState.selectedId) bobState.selectedId = e.id;
+      const sp = bobSpecs(e);
+      const fld = 'width:100%; font-weight:900; font-size:15px; color:#0f172a; border:2px solid #cbd5e1; border-radius:6px; padding:6px 10px; outline:none;';
+      const lbl = 'display:block; font-size:12px; font-weight:900; color:#0f172a; margin-bottom:5px; text-transform:uppercase;';
+      const card = (t, v, s) => '<div style="background:#f8fafc; border:2px solid #0f172a; border-radius:10px; padding:10px 8px; text-align:center;"><div style="font-size:11px; font-weight:900; color:#0f172a; text-transform:uppercase;">' + t + '</div><div style="font-family:monospace; font-weight:900; font-size:16px; color:#0f172a; margin:6px 0; background:#fff; padding:5px; border:2px solid #94a3b8; border-radius:6px;">' + v + '</div><div style="font-size:10px; color:#475569; font-weight:900; text-transform:uppercase;">' + s + '</div></div>';
+      c.innerHTML =
+        '<div style="background:#fff; border-radius:16px; border:2px solid #cbd5e1; box-shadow:0 1px 3px rgba(0,0,0,0.05); overflow:hidden;">' +
+        '<div style="background:#0f172a; color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; border-bottom:2px solid #1e293b;">' +
+          '<div><div style="font-size:1.1rem; font-weight:900; letter-spacing:0.04em;">CONTRÔLE QUALITÉ BOBINE (EXTRUSION)</div></div>' +
+
+          '<div class="no-print" style="display:flex; gap:8px; flex-wrap:wrap;">' +
+          '<button class="act-btn" style="background:#334155; color:#fde68a;" onclick="bobGenerateShift()">&plus; Générer Shift (8h)</button>' +
+          '<button class="act-btn" style="background:#2563eb;" onclick="bobFicheBtn()">💾 Enregistrer la fiche</button>' +
+          '<button class="act-btn" style="background:#15803d;" onclick="bobExportXlsx()">📗 Enregistrer en Excel</button>' +
+          '<button class="act-btn" style="background:#059669;" onclick="window.print()">&star; Imprimer</button>' +
+          '<button class="act-btn" style="background:#334155; color:#fde68a;" onclick="switchPage(\'db\'); switchTab(\'bobines\')">🗄️ Base bobines</button></div></div>' +
+        '<div style="padding:14px 18px; background:#f8fafc; border-bottom:2px solid #cbd5e1; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px;">' +
+          '<div><label style="' + lbl + '">N° Rapport / Page</label><input type="text" value="' + esc(bobState.rapportNum) + '" onchange="bobState.rapportNum=this.value;saveBob()" style="' + fld + ' font-family:monospace;" /></div>' +
+          '<div><label style="' + lbl + '">Groupe</label><select onchange="bobState.groupe=this.value;saveBob()" style="' + fld + ' background:#fff; cursor:pointer;">' + ['A', 'B', 'C'].map(g => '<option value="' + g + '"' + (bobState.groupe === g ? ' selected' : '') + '>GROUPE ' + g + '</option>').join('') + '</select></div>' +
+          '<div><label style="' + lbl + '">Date du jour</label><input type="date" value="' + esc(bobState.dateJour) + '" onchange="bobState.dateJour=this.value;saveBob()" style="' + fld + '" /></div>' +
+          '<div><label style="' + lbl + '">Agent Qualité</label><input type="text" value="' + esc(bobState.agentQualite) + '" placeholder="Nom du contrôleur..." onchange="bobState.agentQualite=this.value;saveBob()" style="' + fld + '" /></div>' +
+        '</div>' +
+        '<div style="padding:14px 18px; background:#fff; border-bottom:2px solid #cbd5e1; display:flex; gap:14px; align-items:center; flex-wrap:wrap;">' +
+          '<div id="bobSearchWrap" style="width:380px; max-width:100%; position:relative;">' +
+            '<label style="display:block; font-size:13px; font-weight:900; text-transform:uppercase; color:#0f172a; margin-bottom:4px;">ARTICLE / BOBINE</label>' +
+            '<div id="bobSearchRow" style="display:flex; gap:6px; align-items:stretch;">' +
+              '<input id="bobSearchInput" type="text" autocomplete="off" spellcheck="false" value="' + esc(e ? (e.article || e.bobine) : '') + '" placeholder="Article, couleur, micronage (ex: 290, noir, 2000 CC...)" onfocus="bobSearchFocus(this)" oninput="bobSearchTyped()" onkeydown="bobSearchKey(event)" style="flex:1; min-width:0; padding:9px 12px; font-size:13px; font-weight:900; color:#0f172a; background:#f8fafc; border:2px solid #475569; border-radius:8px; outline:none;" />' +
+              '<button type="button" onclick="bobToggleDb(event)" title="Afficher toute la base de données" style="width:42px; flex:none; font-size:18px; font-weight:900; line-height:1; color:#0f172a; background:#e2e8f0; border:2px solid #475569; border-radius:8px; cursor:pointer;">&#9638;</button>' +
+            '</div>' +
+            '<div id="bobSearchList" style="display:none; position:fixed; z-index:9999; background:#fff; border:2px solid #475569; border-radius:10px; box-shadow:0 12px 28px rgba(15,23,42,0.25); overflow-y:auto;"></div>' +
+          '</div>' +
+          '<div style="flex:1; min-width:240px; background:#f8fafc; border:2px solid #94a3b8; border-radius:8px; padding:8px 14px;">' +
+            '<span style="font-size:11px; font-weight:900; color:#64748b; text-transform:uppercase; display:block;">Article thermoformage :</span>' +
+            '<strong style="color:#0f172a; font-size:14px; font-weight:900;">' + (e && e.article ? esc(e.article) : '—') + '</strong>' +
+            '<span style="font-size:11px; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-top:4px;">Bobine :</span>' +
+            '<strong style="color:#0f172a; font-size:13px; font-weight:900; font-family:monospace;">' + (e ? esc(e.bobine) : '—') + '</strong>' +
+          '</div></div>' +
+        '<div style="padding:14px 18px; background:#fff; border-bottom:2px solid #cbd5e1;"><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:10px; align-items:stretch;">' +
+          card('Micronage', sp.mic + ' &mu;m', 'Épaisseur nominale') +
+          card('Laize', sp.laize + ' mm', 'Largeur') +
+          card('Couleur', esc(sp.color || '—'), 'Film') +
+          card('Qualité', esc(sp.qual || '—'), 'Silicone ' + esc(sp.sil || '—')) +
+        '</div></div>' +
+        '<div style="padding:14px 18px;">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">' +
+            '<div style="font-size:13px; font-weight:900; text-transform:uppercase; color:#0f172a; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">' +
+              '<span id="bobSummary" style="text-transform:none;">' + bobSummaryHtml() + '</span>' +
+              '<button type="button" onclick="bobOpenGuide()" class="no-print" style="background:#fde047; color:#000; border:2px solid #ca8a04; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:900; cursor:pointer;">📖 Guide des ' + BOB_NC_LIST.length + ' Défauts (Bilingue FR/AR)</button></div>' +
+            '<div class="no-print" style="display:flex; gap:6px;">' +
+              '<button class="act-btn" style="background:#0f172a; padding:8px 16px; font-size:12px; font-weight:900;" onclick="bobAddRow()">&plus; Ajouter Heure</button>' +
+              '<button class="act-btn" style="background:#475569; padding:8px 14px; font-size:12px; font-weight:900;" onclick="bobGenerateShift()">⚡ Générer Shift (8h)</button></div></div>' +
+          '<div style="overflow-x:auto; border:2px solid #334155; border-radius:10px;">' +
+          '<table style="width:100%; border-collapse:collapse; font-size:13px; text-align:center;"><thead>' +
+            '<tr style="background:#0f172a; color:#fff; font-size:12px; font-weight:900; text-transform:uppercase;">' +
+              '<th rowspan="2" style="padding:10px; border:1px solid #475569;">Heure</th>' +
+              '<th colspan="3" style="padding:10px; border:1px solid #475569; background:#1e293b;">Côté gauche (µm)</th>' +
+              '<th colspan="3" style="padding:10px; border:1px solid #475569; background:#334155;">Côté droit (µm)</th>' +
+              '<th rowspan="2" style="padding:10px; border:1px solid #475569;">Laize mesurée (mm)</th>' +
+              '<th rowspan="2" style="padding:10px; border:1px solid #475569; min-width:170px;">Non-conformités</th><th rowspan="2" style="padding:10px; border:1px solid #475569;">Décision</th><th rowspan="2" class="no-print" style="padding:10px; border:1px solid #475569;">Action</th></tr>' +
+            '<tr style="background:#e2e8f0; font-size:11px; font-weight:900; color:#0f172a;">' +
+              ['1', '2', '3'].map(x => '<th style="padding:5px; border:1px solid #94a3b8;">' + x + '</th>').join('') +
+              ['1', '2', '3'].map(x => '<th style="padding:5px; border:1px solid #94a3b8; background:#fde68a;">' + x + '</th>').join('') + '</tr>' +
+          '</thead><tbody>' + bobState.inspections.map((r, i) => bobRowHtml(r, i, sp)).join('') + '</tbody></table></div>' +
+        '</div></div>';
+      saveBob();
+    }
+    // ---- Excel : feuilles bobine ----
+    function bobRowsOf(st) {
+      const e = bobDB.find(x => x.id === st.selectedId) || bobDB[0] || {}, sp = bobSpecs(e);
+      return (st.inspections || []).map(r => {
+        const bobState = st;
+        return [
+          bobState.dateJour, bobState.rapportNum, bobState.groupe, bobState.agentQualite || '', e.article || '', e.bobine || '',
+          sp.mic || '', sp.laize || '', r.heure,
+          bobNum(r.g1) || '', bobNum(r.g2) || '', bobNum(r.g3) || '', bobNum(r.d1) || '', bobNum(r.d2) || '', bobNum(r.d3) || '',
+          bobNum(r.laize) || '', (r.defauts || []).join(', '), r.decision || ''
+        ];
+      });
+    }
+    function bobSheets() {
+      const rows = bobRowsOf(bobState);
+      const histRows = []; bobLoadHist().forEach(h => histRows.push(...bobRowsOf(h.state)));
+      const BH = ['DATE', 'RAPPORT', 'GROUPE', 'AGENT', 'ARTICLE', 'BOBINE', 'MICRONAGE NOMINAL', 'LAIZE NOMINALE', 'HEURE', 'G1', 'G2', 'G3', 'D1', 'D2', 'D3', 'LAIZE MESUREE', 'NON-CONFORMITES', 'DECISION'];
+      return {
+        'Historique Bobine': { headers: BH, rows: histRows },
+        'Controle Bobine': { headers: ['DATE', 'RAPPORT', 'GROUPE', 'AGENT', 'ARTICLE', 'BOBINE', 'MICRONAGE NOMINAL', 'LAIZE NOMINALE', 'HEURE', 'G1', 'G2', 'G3', 'D1', 'D2', 'D3', 'LAIZE MESUREE', 'NON-CONFORMITES', 'DECISION'], rows },
+        'Base Bobines': { headers: ['ARTICLE', 'BOBINE', 'MICRONAGE', 'LAIZE', 'COULEUR', 'QUALITE'], rows: bobDB.map(x => { const s = bobSpecs(x); return [x.article, x.bobine, s.mic, s.laize, s.color, s.qual]; }) }
+      };
+    }
+    function bobExportXlsx() {
+      saveBob();
+      const nm = 'CQ-Bobine_' + bobState.dateJour + '_G' + bobState.groupe + '.xlsx';
+      dlBlob(buildXlsx({ 'Controle Bobine': bobSheets()['Controle Bobine'] }), nm);
+    }
+
+    // ---- Recherche produit CQ : réf / début de code / couleur + bouton base de données ----
+    const CQ_COLORS = ['ROSE', 'VERT', 'BLANC', 'DORE', 'MIEL', 'TRANSPARENT', 'NOIR', 'BLEU', 'ROUGE', 'JAUNE', 'ORANGE', 'MARRON', 'GRIS', 'VIOLET', 'NATUREL', 'CREME', 'BEIGE'];
+    let cqListOpen = false, cqTyped = false;
+    function cqNorm(s) {
+      return String(s === undefined || s === null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/,/g, '.').trim();
+    }
+    function cqColorOf(p) {
+      const t = cqNorm((p.matiereBobine || '') + ' ' + (p.designation || ''));
+      const found = CQ_COLORS.filter(c => t.includes(cqNorm(c)));
+      if (found.length > 1 && found.includes('TRANSPARENT')) found.splice(found.indexOf('TRANSPARENT'), 1);
+      return found[0] || '';
+    }
+    function cqHaystack(p) {
+      return cqNorm([p.reference, p.mouleMachine, p.designation, p.matiereBobine, p.refCarton, p.refSachet, p.refPalette].join(' '));
+    }
+    function cqMatches(q) {
+      const tokens = cqNorm(q).split(/\s+/).filter(Boolean);
+      if (!tokens.length) return petProducts.slice();
+      const res = petProducts.filter(p => { const h = cqHaystack(p); return tokens.every(t => h.includes(t)); });
+      const first = tokens[0];
+      const rank = p => cqNorm(p.reference).startsWith(first) ? 0 : (cqNorm(p.reference).includes(first) ? 1 : 2);
+      return res.sort((a, b) => rank(a) - rank(b));
+    }
+    function cqHl(text, q) {
+      let out = esc(text);
+      cqNorm(q).split(/\s+/).filter(t => t.length > 0).forEach(t => {
+        const safe = esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        out = out.replace(new RegExp('(' + safe + ')(?![^<]*>)', 'gi'), '<mark style="background:#fef08a; color:#713f12; padding:0 1px; border-radius:2px;">$1</mark>');
+      });
+      return out;
+    }
+    function cqPosList() {
+      const row = document.getElementById('cqSearchRow'), box = document.getElementById('cqSearchList');
+      if (!row || !box) return;
+      const r = row.getBoundingClientRect();
+      const below = window.innerHeight - r.bottom - 12, above = r.top - 12;
+      const up = below < 200 && above > below;
+      const maxH = Math.max(160, Math.min(360, up ? above : below));
+      box.style.left = r.left + 'px';
+      box.style.width = Math.max(r.width, Math.min(560, window.innerWidth - r.left - 8)) + 'px';
+      box.style.maxHeight = maxH + 'px';
+      if (up) { box.style.top = 'auto'; box.style.bottom = (window.innerHeight - r.top + 4) + 'px'; }
+      else { box.style.bottom = 'auto'; box.style.top = (r.bottom + 4) + 'px'; }
+    }
+    function cqRenderList() {
+      const box = document.getElementById('cqSearchList'), inp = document.getElementById('cqSearchInput');
+      if (!box || !inp) return;
+      const q = cqTyped ? inp.value : '';
+      const list = cqMatches(q);
+      const head = '<div style="position:sticky; top:0; background:#f1f5f9; padding:6px 12px; font-size:11px; font-weight:900; color:#475569; border-bottom:1px solid #cbd5e1; z-index:1;">' +
+        list.length + ' / ' + petProducts.length + ' produit(s)' + (q.trim() ? ' — « ' + esc(q.trim()) + ' »' : ' — base de données complète') + '</div>';
+      if (!list.length) { box.innerHTML = head + '<div style="padding:16px; text-align:center; color:#ef4444; font-weight:800; font-size:13px;">Aucun produit trouvé</div>'; return; }
+      box.innerHTML = head + list.map(p => {
+        const col = cqColorOf(p), sel = p.reference === cqState.selectedRef;
+        return '<div class="cq-opt" data-ref="' + esc(p.reference) + '" onmousedown="event.preventDefault()" onclick="cqPick(this.dataset.ref)" ' +
+          'style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #e2e8f0; ' + (sel ? 'background:#dbeafe;' : '') + '" onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'' + (sel ? '#dbeafe' : '') + '\'">' +
+          '<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">' +
+          '<span style="font-family:monospace; font-weight:900; font-size:14px; color:#0f172a;">' + cqHl(p.reference, q) + '</span>' +
+          '<span style="font-family:monospace; font-size:11px; font-weight:800; color:#64748b;">[' + esc(p.mouleMachine) + ']</span>' +
+          (col ? '<span style="font-size:10px; font-weight:900; background:#e2e8f0; color:#334155; padding:1px 7px; border-radius:10px;">' + cqHl(col, q) + '</span>' : '') +
+          '</div>' +
+          '<div style="font-size:11px; color:#475569; font-weight:600; margin-top:2px;">' + cqHl(p.designation, q) + '</div></div>';
+      }).join('');
+    }
+    function cqOpenList() { cqListOpen = true; const b = document.getElementById('cqSearchList'); if (!b) return; b.style.display = 'block'; cqPosList(); cqRenderList(); }
+    function cqCloseList() { cqListOpen = false; const b = document.getElementById('cqSearchList'); if (b) b.style.display = 'none'; }
+    function cqSearchFocus(el) { cqTyped = false; el.select(); cqOpenList(); }
+    function cqSearchTyped(el) { cqTyped = true; cqOpenList(); }
+    function cqToggleDb(ev) {
+      if (ev) ev.stopPropagation();
+      if (cqListOpen) { cqCloseList(); return; }
+      cqTyped = false; cqOpenList();
+    }
+    function cqSearchKey(ev) {
+      if (ev.key === 'Escape') { cqCloseList(); ev.target.blur(); }
+      else if (ev.key === 'Enter') {
+        ev.preventDefault();
+        const inp = document.getElementById('cqSearchInput');
+        const list = cqMatches(cqTyped ? inp.value : '');
+        if (list.length) cqPick(list[0].reference);
+      }
+    }
+    function cqPick(ref) { cqCloseList(); cqTyped = false; onSelectCQProduct(ref); }
+    document.addEventListener('mousedown', e => {
+      if (cqListOpen && !e.target.closest('#cqSearchWrap')) cqCloseList();
+    });
+    window.addEventListener('resize', () => { if (cqListOpen) cqPosList(); });
+    window.addEventListener('scroll', () => { if (cqListOpen) cqPosList(); }, true);
+
     function onSelectCQProduct(ref) {
       cqState.selectedRef = ref;
       renderControleQualite();
@@ -2256,6 +2790,7 @@
       return {
         'Historique CQ': { headers: CQ_HEADERS, rows: histRows },
         'Fiche en cours': { headers: CQ_HEADERS, rows: cqRows(cqState) },
+        ...bobSheets(),
         'Produits PET': tbl(petProducts, [['reference','REF/PPAL'],['mouleMachine','REF INSERT'],['designation','MODEL'],['matiereBobine','BOBINE'],['pcsSachet','NBR/PAQ'],['sachetsCarton','PAQ/CRT'],['totalPcsCarton','UNITE/CRT'],['refCarton','CARTON'],['refSachet','SACHET'],['refPalette','PALETTE'],['paletteDimensions','DIM PALETTE'],['cartonsPalette','CRT/PAL'],['nbrEmpreintes','EMPREINTES'],['cadenceHz','CADENCE Hz'],['mpm01','MPM01'],['mpm02','MPM02'],['pourcentageSq','% SQ']]),
         'Cartons': tbl(cartons, [['ref','Ref'],['designation','Designation'],['dimensions','Dimensions (mm)'],['poids','Poids (kg)']]),
         'Sachets': tbl(sachets, [['ref','Reference'],['designation','Designation'],['dimensions','Dimensions (mm)']]),
@@ -2349,7 +2884,7 @@ function doPost(e) {
     const idb = () => new Promise((res, rej) => { const r = indexedDB.open('qc_handles', 1); r.onupgradeneeded = () => r.result.createObjectStore('h'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
     async function idbGet(k) { const db = await idb(); return new Promise(res => { const q = db.transaction('h').objectStore('h').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); }
     async function idbSet(k, v) { const db = await idb(); return new Promise(res => { const t = db.transaction('h', 'readwrite'); t.objectStore('h').put(v, k); t.oncomplete = () => res(); t.onerror = () => res(); }); }
-    function backupPayload() { return JSON.stringify({ v: 2, savedAt: new Date().toISOString(), cartons, sachets, palettes, petProducts, cqState, history: loadHist() }, null, 2); }
+    function backupPayload() { return JSON.stringify({ v: 2, savedAt: new Date().toISOString(), cartons, sachets, palettes, petProducts, cqState, bobDB, bobState, bobHistory: bobLoadHist(), history: loadHist() }, null, 2); }
     async function writeBackup() {
       if (!bkHandle) return false;
       try {
@@ -2386,7 +2921,7 @@ function doPost(e) {
       document.getElementById('gsAuto').checked = lsGet(GS_AUTO_KEY, '0') === '1';
       document.getElementById('gsCode').textContent = GS_CODE;
       document.getElementById('exMsg').style.display = 'none';
-      renderHistList();
+      renderHistList(); renderBobHistList();
       document.getElementById('exportModal').classList.add('open');
     }
     function closeExportModal() { gsSaveCfg(); document.getElementById('exportModal').classList.remove('open'); }
