@@ -1119,7 +1119,7 @@
       else if (st.sel.size > 0 && confirm('Voulez-vous supprimer les ' + st.sel.size + ' ligne(s) sélectionnée(s) ?')) {
         const rows = fxRows(k), keep = rows.filter((_, i) => !st.sel.has(i));
         rows.length = 0; keep.forEach(r => rows.push(r)); st.sel.clear(); fxSave(k);
-        if (!rows.length && k !== 'cq') { fxAdd(k); return; }
+        if (!rows.length && k === 'pal') { fxAdd(k); return; }
       } else st.sel.clear();
       fxRender(k);
     }
@@ -1953,7 +1953,7 @@
               <!-- 3. LAIZE -->
               <div style="background:#f8fafc; border:2px solid #0f172a; border-radius:10px; padding:10px 8px; text-align:center;">
                 <div style="font-size:11px; font-weight:900; color:#0f172a; text-transform:uppercase;">LAIZE</div>
-                <div style="font-family:monospace; font-weight:900; font-size:16px; color:#0f172a; margin:6px 0; background:#fff; padding:5px; border:2px solid #94a3b8; border-radius:6px;">${bobCm(bobine.laize)} cm</div>
+                <div style="font-family:monospace; font-weight:900; font-size:16px; color:#0f172a; margin:6px 0; background:#fff; padding:5px; border:2px solid #94a3b8; border-radius:6px;">${bobine.laize || '—'}</div>
                 <div style="font-size:10px; color:#475569; font-weight:900; text-transform:uppercase;">Largeur</div>
               </div>
 
@@ -2412,10 +2412,10 @@
         g1: '', g2: '', g3: '', d1: '', d2: '', d3: '', laize: '', defauts: [], decision: '', manual: false };
     }
     let bobState = {
-      rapportNum: '01', groupe: 'A', dateJour: todayLocal(), agentQualite: '',
-      selectedId: '', inspections: [bobNewRow()]
+      rapportNum: '', groupe: '', dateJour: '', agentQualite: '',
+      selectedId: '', inspections: []
     };
-    try { const s = JSON.parse(localStorage.getItem(BOB_KEY)); if (s && Array.isArray(s.inspections)) Object.assign(bobState, s); } catch (e) {}
+    try { const s = JSON.parse(localStorage.getItem(BOB_KEY)); if (s && Array.isArray(s.inspections)) { bobState.selectedId = s.selectedId || ''; bobState.agentQualite = s.agentQualite || ''; } } catch (e) {}
     function saveBob() {
       try { localStorage.setItem(BOB_KEY, JSON.stringify(bobState)); localStorage.setItem(BOB_DB_KEY, JSON.stringify(bobDB)); } catch (e) {}
       try { scheduleBackup(); } catch (e) {}
@@ -2534,8 +2534,8 @@
       document.getElementById('bobGuideModal').classList.add('open');
     }
     function bobCloseGuide() { document.getElementById('bobGuideModal').classList.remove('open'); }
-    function bobAddRow() { bobState.inspections.push(bobNewRow()); saveBob(); bobRender(); }
-    function bobDelRow(idx) { if (!confirm('Supprimer ce contrôle ?')) return; bobState.inspections.splice(idx, 1); if (!bobState.inspections.length) bobState.inspections.push(bobNewRow()); saveBob(); bobRender(); }
+    function bobAddRow() { if (!bobState.rapportNum) bobState.rapportNum = '01'; if (!bobState.groupe) bobState.groupe = 'A'; if (!bobState.dateJour) bobState.dateJour = todayLocal(); bobState.inspections.push(bobNewRow()); saveBob(); bobRender(); }
+    function bobDelRow(idx) { if (!confirm('Supprimer ce contrôle ?')) return; bobState.inspections.splice(idx, 1); saveBob(); bobRender(); }
     function bobRemoveNc(idx, code) {
       const r = bobState.inspections[idx]; if (!r) return;
       r.defauts = (r.defauts || []).filter(c => c !== code);
@@ -2638,8 +2638,8 @@
 
           fxToolbar('bob') + '</div>' +
         '<div style="padding:14px 18px; background:#f8fafc; border-bottom:2px solid #cbd5e1; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px;">' +
-          '<div><label style="' + lbl + '">N° Rapport / Page</label><input type="text" value="' + esc(bobState.rapportNum) + '" onchange="bobState.rapportNum=this.value;saveBob()" style="' + fld + ' font-family:monospace;" /></div>' +
-          '<div><label style="' + lbl + '">Groupe</label><select onchange="bobState.groupe=this.value;saveBob()" style="' + fld + ' background:#fff; cursor:pointer;">' + ['A', 'B', 'C'].map(g => '<option value="' + g + '"' + (bobState.groupe === g ? ' selected' : '') + '>GROUPE ' + g + '</option>').join('') + '</select></div>' +
+          '<div><label style="' + lbl + '">N° Rapport / Page</label><input type="text" value="' + esc(bobState.rapportNum) + '" placeholder="—" onchange="bobState.rapportNum=this.value;saveBob()" style="' + fld + ' font-family:monospace;" /></div>' +
+          '<div><label style="' + lbl + '">Groupe</label><select onchange="bobState.groupe=this.value;saveBob()" style="' + fld + ' background:#fff; cursor:pointer;"><option value=""' + (!bobState.groupe ? ' selected' : '') + '>—</option>' + ['A', 'B', 'C'].map(g => '<option value="' + g + '"' + (bobState.groupe === g ? ' selected' : '') + '>GROUPE ' + g + '</option>').join('') + '</select></div>' +
           '<div><label style="' + lbl + '">Date du jour</label><input type="date" value="' + esc(bobState.dateJour) + '" onchange="bobState.dateJour=this.value;saveBob()" style="' + fld + '" /></div>' +
           '<div><label style="' + lbl + '">Agent Qualité</label><input type="text" value="' + esc(bobState.agentQualite) + '" placeholder="Nom du contrôleur..." onchange="bobState.agentQualite=this.value;saveBob()" style="' + fld + '" /></div>' +
         '</div>' +
@@ -2661,7 +2661,7 @@
         '<div style="padding:14px 18px; background:#fff; border-bottom:2px solid #cbd5e1;"><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:2px; background:#94a3b8; border:2px solid #0f172a; border-radius:12px; overflow:hidden;">' +
           cell('Micronage', (sp.mic ? sp.mic / 10 : '—')) +
           cell('Tolérance', '±' + (sp.mic >= 500 ? 2 : 1)) +
-          cell('Laize (mm)', (sp.laize || '—') + ' mm') +
+          cell('Laize', (sp.laize || '—')) +
           cell('Couleur', esc(sp.color || '—')) +
           cell('Qualité', esc(sp.qual || '—')) +
           cell('Silicone', esc(sp.sil || '—')) +
